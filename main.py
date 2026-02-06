@@ -1,25 +1,33 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Use astropy.units and astropy.constants? 
+
+
 ## Define variables (maybe useful for later)
 N = 3
 L = 10 # size of boxes, probably decide later
 
 rho = ... # Particle density, not necessary for now
 T = ... # temperature   
-
+epsilon = 119.8 #K (epsilon / k_boltzmann)
+sigma = 3.405 #Angstrom
 
 
 ## Equations of Motion
 
-# Interaction potential
-
+# Interaction potential (Lennard Jones)
+def LennardJonesPotential(r):
+    U = epsilon(
+        (sigma / r)**12 - (sigma / r)**6
+    )
+    return U
 
 
 
 
 ## Define particles (init properties)
-# Probably start with 2-3 particles first
+# Probably start with 3-4 particles first
 
 # Initial Position
 pos1 = [np.random([0,L]), np.random([0,L])]
