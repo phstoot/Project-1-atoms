@@ -14,8 +14,8 @@ L = 10 # size of boxes, probably decide later - should we stick to Angstrom?
 rho = ... # Particle density, not necessary for now
 T = ... # temperature   
 epsilon = 119.8 #K (epsilon / k_boltzmann)
-sigma = 3.405 #Angstrom
-mass = 10**(-9) # Mass
+sigma = 3.405 * 10**(-5)#Angstrom
+mass = 10**(-27) # Mass
 
 ## Equations of Motion
 # Force from interaction
@@ -47,7 +47,7 @@ vel = np.zeros((N,2))
 ## Find change due to interaction with neighbouring particles
 # Simulate maybe 10 time steps first
 
-h = 0.00001
+h = 0.1
 N_steps = 10
 
 
@@ -56,7 +56,6 @@ print("Old velocities: "+ str(vel))
 
 ## Simulation part
 def simulate():
-    ## i is the number of steps taken in the simulation (i.e. the time)
     '''
     For each particle: Finds force from every other interaction particle (using the smallest vector combining them). 
     Adds the forces up in an array, such that the final force is the sum of all.
@@ -111,8 +110,10 @@ def simulate():
     print("New Positions: "+ str(pos))
     print("New velocities: "+ str(vel))
     
+    # Probably store the positions in an array, so that we can plot the evolution.
     
     
+ 
 for _ in range (N_steps):
     simulate()
 
