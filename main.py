@@ -1,53 +1,119 @@
 import numpy as np
 import matplotlib.pyplot as plt
+# import astropy.units 
+# import astropy.constants
 
-# Use astropy.units and astropy.constants? 
+
+# Use astropy.units and astropy.constants? --> sure, havent used these before but those might help? But astronomy units?
 
 
 ## Define variables (maybe useful for later)
-N = 3
-L = 10 # size of boxes, probably decide later
+N = 10
+L = 10 # size of boxes, probably decide later - should we stick to Angstrom?
 
 rho = ... # Particle density, not necessary for now
 T = ... # temperature   
 epsilon = 119.8 #K (epsilon / k_boltzmann)
 sigma = 3.405 #Angstrom
-
+mass = 10**(-9) # Mass
 
 ## Equations of Motion
-
-# Interaction potential (Lennard Jones)
-def LennardJonesPotential(r):
-    U = epsilon(
-        (sigma / r)**12 - (sigma / r)**6
+# Force from interaction
+def Interaction_force(r):
+    F = 24 * epsilon * (2 * 
+        (sigma**12 / (r**14)) - (sigma**6 / (r**8))
     )
-    return U
+    return F
 
-# some push
 
+
+# distance, duh - should we already calculate the minimal distance here? - actually calculated minimal vector here (so vector )
+def min_vector(part1, part2):
+    '''Finds smallest vector connecting particle 1 to particle 2, in the smallest image convention.'''
+    vec = part2 - part1
+    min_vec = np.mod(vec + [0.5*L, 0.5*L], [L,L]) - [0.5*L, 0.5*L]
+    return min_vec
 
 ## Define particles (init properties)
 # Probably start with 3-4 particles first
 
 # Initial Position
-pos1 = [np.random([0,L]), np.random([0,L])]
-pos2 = [np.random([0,L]), np.random([0,L])]
-pos3 = [np.random([0,L]), np.random([0,L])]
+# The more general approach comes from previous course
+# vel = np.zeros((N,2)) - or are we choosing non-zero starting velocities?
 
-print("Initial Positions: \n")
-print("Position1: " +  str(pos1) + "\n" + "Position1: " +  str(pos2) + "\n" + "Position1: " +  str(pos3) + "\n")
-
-
+pos = np.random.uniform(0,L,size=(N,2))
+vel = np.zeros((N,2))
 
 ## Find change due to interaction with neighbouring particles
 # Simulate maybe 10 time steps first
 
-h = 0.01
+h = 0.00001
 N_steps = 10
 
 
+print("Old Positions: "+ str(pos))
+print("Old velocities: "+ str(vel))
 
+## Simulation part
+def simulate():
+    ## i is the number of steps taken in the simulation (i.e. the time)
+    '''
+    For each particle: Finds force from every other interaction particle (using the smallest vector combining them). 
+    Adds the forces up in an array, such that the final force is the sum of all.
+    
+    Then modifies position and velocities from that point on. 
+    
+    Later on, this is supposed to run N_steps times.
+    '''
+    
+    
+    # I guess the idea here is the following: Find force onto each particle from other particles. New velocity is then result of sum of forces.
+    # Additionally, slightly change position from old velocity.
+    # Overwrite pos & vel of each particle
+    Summed_Force = np.zeros((N,2))
+    
+    j = 0
+    while j < N:
+        main_particle = pos[j,:]
+        
+        k = 0
+        while k < N:
+            int_particle = pos[k,:]
+            if k != j:
+                # Vector connecting main to interaction particle
+                min_vec = min_vector(main_particle, int_particle)
+                r = np.linalg.norm(min_vec)
+                
+                # Force magnetiude
+                F_mag = Interaction_force(r)
+                
+                # Force vector, note that we already normalized the vector min_vec in the Force function definition
+                Summed_Force[k,0] += F_mag * min_vec[0]
+                Summed_Force[k,1] += F_mag * min_vec[1]
 
+            k += 1
+        
+        j += 1           
+    
+    
+    ## After calculation
+    pos[:,0] += vel[:,0] * h
+    pos[:,1] += vel[:,1] * h
 
+    vel[:,0] += 1 / mass * Summed_Force[:,0] * h
+    vel[:,1] += 1 / mass * Summed_Force[:,1] * h
+    
+    #Periodic boundary conditions
+    pos[pos>L] -= L
+    pos[pos<0] += L
+    
+    
+    print("New Positions: "+ str(pos))
+    print("New velocities: "+ str(vel))
+    
+    
+    
+for _ in range (N_steps):
+    simulate()
 
 ## Plot particles with their trajectories
