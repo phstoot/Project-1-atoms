@@ -10,7 +10,7 @@ from random import randint
 
 ## Define variables (maybe useful for later)
 N = 3
-L = 10 **(-4) # size of boxes, probably decide later - should we stick to Angstrom?
+L = 10 # size of boxes, probably decide later
 
 rho = ... # Particle density, not necessary for now
 T = ... # temperature   
@@ -37,6 +37,13 @@ def min_vector(part1, part2):
 
 ## Define particles (init properties)
 # Probably start with 3-4 particles first
+
+# shall we create a particle class?
+class Particle:
+    def __init__(self, position, velocity, mass):
+        self.position = position
+        self.velocity = velocity
+        self.mass = mass
 
 # Initial Position
 # The more general approach comes from previous course
