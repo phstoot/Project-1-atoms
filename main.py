@@ -10,13 +10,13 @@ from random import randint
 
 ## Define variables (maybe useful for later)
 N = 3
-L = 10 # size of boxes, probably decide later - should we stick to Angstrom?
+L = 10 **(-4) # size of boxes, probably decide later - should we stick to Angstrom?
 
 rho = ... # Particle density, not necessary for now
 T = ... # temperature   
-epsilon = 119.8 #K (epsilon / k_boltzmann)
-sigma = 3.405 * 10**(-5)#Angstrom
-mass = 10**(-27) # Mass
+epsilon = 1.654 * 10**(-10) #119.8 #K (epsilon / k_boltzmann)
+sigma = 3.405 * 10**(-10)#Angstrom
+mass = 6.6 * 10**(-26) # Mass
 
 ## Equations of Motion
 # Force from interaction
@@ -40,16 +40,17 @@ def min_vector(part1, part2):
 
 # Initial Position
 # The more general approach comes from previous course
+# For specific scenarios, play around with these
 # vel = np.zeros((N,2)) - or are we choosing non-zero starting velocities?
 
 pos = np.random.uniform(0,L,size=(N,2))
-vel = np.zeros((N,2))
+vel = np.random.uniform(0,L/5, size=(N,2))# np.zeros((N,2))
 
 ## Find change due to interaction with neighbouring particles
 # Simulate maybe 10 time steps first
 
-h = 0.1
-N_steps = 5
+h = 0.01
+N_steps = 50
 
 
 print("Old Positions: "+ str(pos))
@@ -120,7 +121,7 @@ def simulate():
     vel[:,1] += 1 / mass * Summed_Force[:,1] * h
     
     #Periodic boundary conditions (Needs to be adjusted, so that if a particle with pos > 2L is floored to its remainder between (0,L))
-    pos[pos>L] -= L
+    pos[pos >L] -= L# np.mod(pos, [L,L]) [pos>L]
     pos[pos<0] += L
     
     
@@ -157,7 +158,7 @@ for i in range(N): # from some stackexchange post
     colors.append('#%06X' % randint(0, 0xFFFFFF))
 
 
-plt.figure(figsize=(8,5))
+plt.figure(figsize=(8,8))
 
 
 for i in range(N):
@@ -175,4 +176,6 @@ plt.show()
 # Adjust parameters to make it physical
 # Maybe mark starting locations in plot
 # Can be plotted continously using FuncAnimation??
+# Check validity: Do collisions reproduce our expectation? Single particle moves in straight line?
+# 
 
