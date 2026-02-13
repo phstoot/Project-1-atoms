@@ -54,6 +54,22 @@ N_steps = 10
 print("Old Positions: "+ str(pos))
 print("Old velocities: "+ str(vel))
 
+
+## Create position and velocity (3D) arrays to store data
+All_pos = np.zeros((N,2,N_steps+1))
+All_vel = np.zeros((N,2,N_steps+1))
+
+for i in range(N):
+    All_pos[i,0,0] = pos[i,0]
+    All_pos[i,1,0] = pos[i,1]
+    All_vel[i,0,0] = vel[i,0]
+    All_vel[i,1,0] = vel[i,1]
+
+# print(str(All_pos))
+# print(str(All_vel))
+
+
+
 ## Simulation part
 def simulate():
     '''
@@ -72,7 +88,7 @@ def simulate():
     Summed_Force = np.zeros((N,2))
     
     j = 0
-    while j < N:
+    while j < N:      
         main_particle = pos[j,:]
         
         k = 0
@@ -109,12 +125,29 @@ def simulate():
     
     print("New Positions: "+ str(pos))
     print("New velocities: "+ str(vel))
+
+    ## Store pos and velocity in overall array for plotting the evolution later o
     
-    # Probably store the positions in an array, so that we can plot the evolution.
+    return pos, vel
+    
     
     
  
-for _ in range (N_steps):
+for k in range (N_steps):
     simulate()
+    ## Store pos and velocity in overall array for plotting the evolution later on
+    for m in range(N):
+        All_pos[m,0,k+1] = pos[m,0]
+        All_pos[m,1,k+1] = pos[m,1]
+        All_vel[m,0,k+1] = vel[m,0]
+        All_vel[m,1,k+1] = vel[m,1]
 
+print(str(All_pos))
+print(str(All_vel))
 ## Plot particles with their trajectories
+
+
+
+
+
+
