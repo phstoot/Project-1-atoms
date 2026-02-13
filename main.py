@@ -1,21 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from random import randint
-# import astropy.units 
-# import astropy.constants
 
 
-# Use astropy.units and astropy.constants? --> sure, havent used these before but those might help? But astronomy units?
-
-
-## Define variables (maybe useful for later)
+# Define variables
 N = 3
-L = 10 # size of boxes, probably decide later
+L = 10 # size of box, probably decide later
 
 rho = ... # Particle density, not necessary for now
 T = ... # temperature   
 epsilon = 1.654 * 10**(-10) #119.8 #K (epsilon / k_boltzmann)
-sigma = 3.405 * 10**(-10)#Angstrom
+sigma = 3.405 * 10**(-10) # Angstrom
 mass = 6.6 * 10**(-26) # Mass
 
 ## Equations of Motion
@@ -35,21 +30,7 @@ def min_vector(part1, part2):
     min_vec = np.mod(vec + [0.5*L, 0.5*L], [L,L]) - [0.5*L, 0.5*L]
     return min_vec
 
-## Define particles (init properties)
-# Probably start with 3-4 particles first
-
-# shall we create a particle class?
-class Particle:
-    def __init__(self, position, velocity, mass):
-        self.position = position
-        self.velocity = velocity
-        self.mass = mass
-
 # Initial Position
-# The more general approach comes from previous course
-# For specific scenarios, play around with these
-# vel = np.zeros((N,2)) - or are we choosing non-zero starting velocities?
-
 pos = np.random.uniform(0,L,size=(N,2))
 vel = np.random.uniform(0,L/5, size=(N,2))# np.zeros((N,2))
 
