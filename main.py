@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from random import randint
 # import astropy.units 
 # import astropy.constants
 
@@ -8,7 +9,7 @@ import matplotlib.pyplot as plt
 
 
 ## Define variables (maybe useful for later)
-N = 10
+N = 3
 L = 10 # size of boxes, probably decide later - should we stick to Angstrom?
 
 rho = ... # Particle density, not necessary for now
@@ -48,7 +49,7 @@ vel = np.zeros((N,2))
 # Simulate maybe 10 time steps first
 
 h = 0.1
-N_steps = 10
+N_steps = 5
 
 
 print("Old Positions: "+ str(pos))
@@ -118,7 +119,7 @@ def simulate():
     vel[:,0] += 1 / mass * Summed_Force[:,0] * h
     vel[:,1] += 1 / mass * Summed_Force[:,1] * h
     
-    #Periodic boundary conditions
+    #Periodic boundary conditions (Needs to be adjusted, so that if a particle with pos > 2L is floored to its remainder between (0,L))
     pos[pos>L] -= L
     pos[pos<0] += L
     
@@ -149,5 +150,29 @@ print(str(All_vel))
 
 
 
+## Define colours for plot
+colors = []
 
+for i in range(N): # from some stackexchange post
+    colors.append('#%06X' % randint(0, 0xFFFFFF))
+
+
+plt.figure(figsize=(8,5))
+
+
+for i in range(N):
+    plt.scatter(All_pos[i,0,:], All_pos[i,1,:], c= colors[i], marker = 'o', linewidths= 1)
+
+
+plt.title(r"Simulation for " + str(N) + " different particles")
+plt.xlabel(r"x")
+plt.ylabel(r"y")
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.show()
+
+## Things still to do: 
+# Make a more understandable plot (especially when particles go haywire, their evolution cannot be captured in the plot)
+# Adjust parameters to make it physical
+# Maybe mark starting locations in plot
+# Can be plotted continously using FuncAnimation??
 
