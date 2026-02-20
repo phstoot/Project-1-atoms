@@ -181,7 +181,8 @@ def static_plot(positions, velocities):
     plt.figure(figsize=(8,8))    
     
     for i in range(N):
-    plt.scatter(positions[i,0,:], positions[i,1,:], c= colors[i], marker = 'o', linewidths= 1)
+        plt.plot(positions[i,0,:], positions[i,1,:], c= colors[i], linestyle = "-", linewidth= 1)
+        plt.scatter(positions[i,0,N_steps], positions[i,1,N_steps], c=colors[i], marker= "o") 
 
 
     plt.title(r"Simulation for " + str(N) + " different particles")
