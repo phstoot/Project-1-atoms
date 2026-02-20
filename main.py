@@ -7,14 +7,17 @@ import matplotlib.animation as animation
 
 
 # Define variables
-N = 3
-L = 10 # size of box, probably decide later
+N = 2
+L = 5 # size of box, probably decide later
 
 rho = ... # Particle density, not necessary for now
 T = ... # temperature   
 epsilon = 1.654 * 10**(-10) #119.8 #K (epsilon / k_boltzmann)
 sigma = 3.405 * 10**(-10) # Angstrom
 mass = 6.6 * 10**(-26) # Mass
+
+
+print(str(epsilon))
 
 ## Equations of Motion
 # Force from interaction
@@ -26,7 +29,8 @@ mass = 6.6 * 10**(-26) # Mass
 
 #Natural Units
 def Interaction_force(r):
-    F = 24 * (2 * r**(-14) - r**(-8)
+    ## Check again if -13 or -14
+    F = 24 * (2 * r**(-13) - r**(-7)
     )
     return F
 
@@ -60,12 +64,12 @@ class Particle:
 
 # Initial Position
 pos = np.random.uniform(0,L,size=(N,2))
-vel = np.random.uniform(0,L/5, size=(N,2))# np.zeros((N,2))
+vel = np.random.uniform(-L/2,L/2, size=(N,2))#np.zeros((N,2)) #
 
 ## Find change due to interaction with neighbouring particles
 # Simulate maybe 10 time steps first
 
-h = 0.01
+h = 0.01 # Due to our redefinition
 N_steps = 50
 
 
@@ -133,8 +137,8 @@ def simulate():
     pos[:,0] += vel[:,0] * h
     pos[:,1] += vel[:,1] * h
 
-    vel[:,0] += 1 / mass * Summed_Force[:,0] * h
-    vel[:,1] += 1 / mass * Summed_Force[:,1] * h
+    vel[:,0] += Summed_Force[:,0] * h
+    vel[:,1] += Summed_Force[:,1] * h
     
     #Periodic boundary conditions (Needs to be adjusted, so that if a particle with pos > 2L is floored to its remainder between (0,L))
     periodic_boundaries(pos)
@@ -145,11 +149,24 @@ def simulate():
 
     ## Store pos and velocity in overall array for plotting the evolution later o
     
-    return pos, vel
+    return pos
     
     
     
- 
+
+
+# ## Define starting position and velocity here (will be put in a separate run file later I guess)
+# N = 2
+
+# h = 0.00001 # Due to our redefinition
+# N_steps = 5
+# pos = np.array([[0.3*L, ], [2*L/3,L/2+0.001]])
+# vel = np.array([[L,0],[-L/2,0]])#np.zeros((N,2)) #
+
+
+
+
+
 for k in range (N_steps):
     simulate()
     ## Store pos and velocity in overall array for plotting the evolution later on
@@ -164,6 +181,9 @@ for k in range (N_steps):
 ## Plot particles with their trajectories
 
 
+colors = []
+for i in range(N): # from some stackexchange post
+    colors.append('#%06X' % randint(0, 0xFFFFFF))
 
 ## Regular Evolution Plot
 def static_plot(positions, velocities):
@@ -174,9 +194,6 @@ def static_plot(positions, velocities):
     
     
     # Define colours for plot
-    colors = []
-    for i in range(N): # from some stackexchange post
-        colors.append('#%06X' % randint(0, 0xFFFFFF))
         
     plt.figure(figsize=(8,8))    
     
@@ -196,13 +213,60 @@ def static_plot(positions, velocities):
 # def animated_plot():
 #     .
 
-static_plot(All_pos, All_vel)
+# static_plot(All_pos, All_vel)
 
 
 # fig, ax= plt.subplots(figsize=(6,6))
 
-# myAnimation = animation.FuncAnimation(fig,simulate,np.arange(1, 2000),interval=1, blit=True, repeat=True)
-# plt.show()
+
+## Animation part
+fig, ax = plt.subplots(figsize=(6,6))
+ax.set_xlim(0, L)
+ax.set_ylim(0, L)
+ax.set_aspect('equal')
+ax.set_title("Particle Simulation")
+
+# Create scatter object (this is what we update)
+scat = ax.scatter(pos[:,0], pos[:,1], c=colors, s=80)
+
+def update(frame):
+    simulate()  # advance system by one step
+    scat.set_offsets(pos)  # update particle positions
+    return scat,
+
+ani = animation.FuncAnimation(
+    fig,
+    update,
+    frames=1000,
+    interval=20,
+    blit=True
+)
+
+plt.show()
+
+
+# def update(frame):
+#     # for each frame, update the data stored on each artist.
+#     pos, vel = simulate()
+#     # update the scatter plot:
+#     for i in range(N):
+#         ax.plot(pos[i,0], pos[i,1], c= colors[i], linestyle = "-", linewidth= 1)
+#         ax.scatter(pos[i,0], pos[i,1], c=colors[i], marker= "o")
+    
+#     # data = np.stack([x, y]).T
+#     # scat.set_offsets(data)
+#     # # update the line plot:
+#     # line2.set_xdata(t[:frame])
+#     # line2.set_ydata(z2[:frame])
+#     return (scat, line2)
+
+
+
+myAnimation = animation.FuncAnimation(fig,simulate,np.arange(1, 2000),interval=1, blit=True, repeat=True)
+plt.show()
+
+
+
 
 
 
@@ -213,5 +277,5 @@ static_plot(All_pos, All_vel)
 # Maybe mark starting locations in plot
 # Can be plotted continously using FuncAnimation??
 # Check validity: Do collisions reproduce our expectation? Single particle moves in straight line?
-# 
-
+# Put the motivations written in this code into latex
+# Save energy at each instant
