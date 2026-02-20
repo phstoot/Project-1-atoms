@@ -7,8 +7,8 @@ import matplotlib.animation as animation
 
 
 # Define variables
-N = 2
-L = 5 # size of box, probably decide later
+N = 4
+L = 10 # size of box, probably decide later
 
 rho = ... # Particle density, not necessary for now
 T = ... # temperature   
@@ -19,38 +19,78 @@ mass = 6.6 * 10**(-26) # Mass
 
 print(str(epsilon))
 
-## Equations of Motion
-# Force from interaction
-# def Interaction_force(r):
-#     F = 24 * epsilon * (2 * 
-#         (sigma**12 / (r**14)) - (sigma**6 / (r**8))
-#     )
-#     return F
-
-#Natural Units
 def Interaction_force(r):
+    '''
+    Calculates force in natural units. 
+        
+    :param r (float): Distance between two particles in natural units.
+    
+    :return (float) : Magnitude of Interaction Force  
+    '''
+    
     ## Check again if -13 or -14
-    F = 24 * (2 * r**(-13) - r**(-7)
+    F = 24 * (2 * r**(-14) - r**(-8)
     )
     return F
 
 
 
-# distance, duh - should we already calculate the minimal distance here? - actually calculated minimal vector here (so vector )
+## Minimal image convenction and periodic boundary conditions
 def min_vector(part1, part2):
-    '''Finds smallest vector connecting particle 1 to particle 2, in the smallest image convention.'''
+    '''Finds smallest vector connecting particle 1 to particle 2, in the smallest image convention.
+    
+    Parameters:
+    part1 (arr): main particle
+    part2 (arr): interaction particle
+    
+    Returns:
+    arr: Vector pointing to closest version of interaction particle.
+    '''
     vec = part2 - part1
     min_vec = np.mod(vec + [0.5*L, 0.5*L], [L,L]) - [0.5*L, 0.5*L]
     return min_vec
 
 def periodic_boundaries(pos):
-    '''Causes the particles to stay in the box defined by (L,L).'''
+    '''
+    Causes the particles to stay in the box defined by (L,L).
+    
+    :param: pos (arr): Array of instantaneous positions of all particles.
+    
+    Returns: none
+    '''
     for i in range(N):
         pos[i,0] %= L
         pos[i,1] %= L
         pos[pos < 0] += L
 
 
+## Energies
+def Kinetic_Energies(vel):
+    '''
+    Calculates the Kinetic Energy of each particle in natural units.
+    
+    :param vel (arr): Instantaneous velocity array in natural units.
+    
+    :return (float): Kinetic Energy array in natural units.
+    '''
+    
+    Kin = 1/2 * vel * vel
+    return Kin
+     
+    
+def Lennard_Jones_Potential(r):
+    '''
+    Calculates Potential Energy due to each particle interaction, in natural units. 
+        
+    :param r (float): Distance between two particles in natural units.
+    
+    :return (float): Interaction Potential
+    '''
+    
+    U = 4 * (
+        r**(-12) - r**(-6)
+    )
+    return U
 
 ## Define particles (init properties)
 # Probably start with 3-4 particles first
@@ -64,12 +104,12 @@ class Particle:
 
 # Initial Position
 pos = np.random.uniform(0,L,size=(N,2))
-vel = np.random.uniform(-L/2,L/2, size=(N,2))#np.zeros((N,2)) #
+vel = np.random.uniform(0,L, size=(N,2))#np.zeros((N,2)) #
 
 ## Find change due to interaction with neighbouring particles
 # Simulate maybe 10 time steps first
 
-h = 0.01 # Due to our redefinition
+h = 0.001 # Due to our redefinition
 N_steps = 50
 
 
@@ -142,13 +182,7 @@ def simulate():
     
     #Periodic boundary conditions (Needs to be adjusted, so that if a particle with pos > 2L is floored to its remainder between (0,L))
     periodic_boundaries(pos)
-    
-    
-    # print("New Positions: "+ str(pos))
-    # print("New velocities: "+ str(vel))
 
-    ## Store pos and velocity in overall array for plotting the evolution later o
-    
     return pos
     
     
@@ -167,14 +201,14 @@ def simulate():
 
 
 
-for k in range (N_steps):
-    simulate()
-    ## Store pos and velocity in overall array for plotting the evolution later on
-    for m in range(N):
-        All_pos[m,0,k+1] = pos[m,0]
-        All_pos[m,1,k+1] = pos[m,1]
-        All_vel[m,0,k+1] = vel[m,0]
-        All_vel[m,1,k+1] = vel[m,1]
+# for k in range (N_steps):
+#     simulate()
+#     ## Store pos and velocity in overall array for plotting the evolution later on
+#     for m in range(N):
+#         All_pos[m,0,k+1] = pos[m,0]
+#         All_pos[m,1,k+1] = pos[m,1]
+#         All_vel[m,0,k+1] = vel[m,0]
+#         All_vel[m,1,k+1] = vel[m,1]
 
 # print(str(All_pos))
 # print(str(All_vel))
