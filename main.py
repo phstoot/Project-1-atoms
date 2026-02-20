@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from random import randint
+import matplotlib.animation as animation
+
+## We could technically write all equations allowing for both natural and normal units (so using function(*,natural = True))
 
 
 # Define variables
@@ -15,9 +18,15 @@ mass = 6.6 * 10**(-26) # Mass
 
 ## Equations of Motion
 # Force from interaction
+# def Interaction_force(r):
+#     F = 24 * epsilon * (2 * 
+#         (sigma**12 / (r**14)) - (sigma**6 / (r**8))
+#     )
+#     return F
+
+#Natural Units
 def Interaction_force(r):
-    F = 24 * epsilon * (2 * 
-        (sigma**12 / (r**14)) - (sigma**6 / (r**8))
+    F = 24 * (2 * r**(-14) - r**(-8)
     )
     return F
 
@@ -112,8 +121,8 @@ def simulate():
                 F_mag = Interaction_force(r)
                 
                 # Force vector, note that we already normalized the vector min_vec in the Force function definition
-                Summed_Force[k,0] += F_mag * min_vec[0]
-                Summed_Force[k,1] += F_mag * min_vec[1]
+                Summed_Force[j,0] += F_mag * min_vec[0]
+                Summed_Force[j,1] += F_mag * min_vec[1]
 
             k += 1
         
@@ -131,8 +140,8 @@ def simulate():
     periodic_boundaries(pos)
     
     
-    print("New Positions: "+ str(pos))
-    print("New velocities: "+ str(vel))
+    # print("New Positions: "+ str(pos))
+    # print("New velocities: "+ str(vel))
 
     ## Store pos and velocity in overall array for plotting the evolution later o
     
@@ -150,8 +159,8 @@ for k in range (N_steps):
         All_vel[m,0,k+1] = vel[m,0]
         All_vel[m,1,k+1] = vel[m,1]
 
-print(str(All_pos))
-print(str(All_vel))
+# print(str(All_pos))
+# print(str(All_vel))
 ## Plot particles with their trajectories
 
 
@@ -178,7 +187,7 @@ def static_plot(positions, velocities):
     plt.title(r"Simulation for " + str(N) + " different particles")
     plt.xlabel(r"x")
     plt.ylabel(r"y")
-    plt.grid(True, linestyle='--', alpha=0.5)
+    # plt.grid(True, linestyle='--', alpha=0.5)
     plt.show()
 
 
@@ -188,6 +197,11 @@ def static_plot(positions, velocities):
 
 static_plot(All_pos, All_vel)
 
+
+# fig, ax= plt.subplots(figsize=(6,6))
+
+# myAnimation = animation.FuncAnimation(fig,simulate,np.arange(1, 2000),interval=1, blit=True, repeat=True)
+# plt.show()
 
 
 
