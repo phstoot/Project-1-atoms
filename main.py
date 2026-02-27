@@ -16,81 +16,15 @@ epsilon = 1.654 * 10**(-10) #119.8 #K (epsilon / k_boltzmann)
 sigma = 3.405 * 10**(-10) # Angstrom
 mass = 6.6 * 10**(-26) # Mass
 
-
-print(str(epsilon))
-
-def Interaction_force(r):
-    '''
-    Calculates force in natural units. 
-        
-    :param r (float): Distance between two particles in natural units.
-    
-    :return (float) : Magnitude of Interaction Force  
-    '''
-    
-    ## Check again if -13 or -14
-    F = 24 * (2 * r**(-14) - r**(-8)
-    )
-    return F
+v_max = 10
 
 
+from functions import Lennard_Jones_Potential,\
+    min_vector, \
+    periodic_boundaries, \
+    Interaction_Force, \
+    Kinetic_Energies
 
-## Minimal image convenction and periodic boundary conditions
-def min_vector(part1, part2):
-    '''Finds smallest vector connecting particle 1 to particle 2, in the smallest image convention.
-    
-    Parameters:
-    part1 (arr): main particle
-    part2 (arr): interaction particle
-    
-    Returns:
-    arr: Vector pointing to closest version of interaction particle.
-    '''
-    vec = part2 - part1
-    min_vec = np.mod(vec + [0.5*L, 0.5*L], [L,L]) - [0.5*L, 0.5*L]
-    return min_vec
-
-def periodic_boundaries(pos):
-    '''
-    Causes the particles to stay in the box defined by (L,L).
-    
-    :param: pos (arr): Array of instantaneous positions of all particles.
-    
-    Returns: none
-    '''
-    for i in range(N):
-        pos[i,0] %= L
-        pos[i,1] %= L
-        pos[pos < 0] += L
-
-
-## Energies
-def Kinetic_Energies(vel):
-    '''
-    Calculates the Kinetic Energy of each particle in natural units.
-    
-    :param vel (arr): Instantaneous velocity array in natural units.
-    
-    :return (float): Kinetic Energy array in natural units.
-    '''
-    
-    Kin = 1/2 * vel * vel
-    return Kin
-     
-    
-def Lennard_Jones_Potential(r):
-    '''
-    Calculates Potential Energy due to each particle interaction, in natural units. 
-        
-    :param r (float): Distance between two particles in natural units.
-    
-    :return (float): Interaction Potential
-    '''
-    
-    U = 4 * (
-        r**(-12) - r**(-6)
-    )
-    return U
 
 ## Define particles (init properties)
 # Probably start with 3-4 particles first
@@ -104,7 +38,7 @@ class Particle:
 
 # Initial Position
 pos = np.random.uniform(0,L,size=(N,2))
-vel = np.random.uniform(0,L, size=(N,2))#np.zeros((N,2)) #
+vel = np.random.uniform(0,L, size=(N,2)) # np.zeros((N,2)) #
 
 ## Find change due to interaction with neighbouring particles
 # Simulate maybe 10 time steps first
@@ -117,7 +51,7 @@ print("Old Positions: "+ str(pos))
 print("Old velocities: "+ str(vel))
 
 
-## Create position and velocity (3D) arrays to store data
+## Create position and velocity (3D) arrays to store data over time
 All_pos = np.zeros((N,2,N_steps+1))
 All_vel = np.zeros((N,2,N_steps+1))
 
@@ -179,6 +113,10 @@ def simulate():
 
     vel[:,0] += Summed_Force[:,0] * h
     vel[:,1] += Summed_Force[:,1] * h
+
+    for v in vel:
+        if np.absolute()
+
     
     #Periodic boundary conditions (Needs to be adjusted, so that if a particle with pos > 2L is floored to its remainder between (0,L))
     periodic_boundaries(pos)
