@@ -4,17 +4,15 @@ from random import randint
 import matplotlib.animation as animation
 from functions import Lennard_Jones_Potential,\
     min_vector, \
-    periodic_boundaries, \
     Interaction_force, \
     Kinetic_Energies
 
-
 ## Initial conditions
-N = 3
+N = 6
 L = 10
 h = 0.001 # Natural units
 
-N_steps = 500
+N_steps = 1000
 
 # # for testing purposes:
 # pos = np.array([[-6.5, 5.1],
@@ -60,6 +58,7 @@ def verlet_integration():
     
     # this block calculates forces at time t
     F_t = np.zeros((N,2))
+    U_t = 0
     
     for i in range(N):
         main_particle = pos[i,:]
@@ -75,19 +74,19 @@ def verlet_integration():
                 F_t[i,0] += F_mag * r_vector[0]
                 F_t[i,1] += F_mag * r_vector[1]
                 
-                All_pot.append(0.5*U) # U is potential energy between pair, so for each particle one half
+                U_t += 0.5*U # U is potential energy between pair, so for each particle one half
         # Due to for loop, i += 1 not necessary
     # store energies at time t
     kin = Kinetic_Energies(np.linalg.norm(vel, axis=1))
     All_kin.append(np.sum(kin))
-    
+    All_pot.append(U_t)
 
     # Now comes the Verlet algorithm to update our system
     # (1) x(t+h) = x(t) + hv(t) + 0.5*h**2 * F(x(t))
     pos[:,0] += h*vel[:,0] + 0.5*(h**2)*F_t[:,0]
     pos[:,1] += h*vel[:,1] + 0.5*(h**2)*F_t[:,1]
     # apply box constraints
-    periodic_boundaries(pos)
+    pos %= L
 
     # (2) Calculate new forces with updated positions at time t+h:
     # note: Write this block into separate function since we use it often
@@ -174,7 +173,8 @@ plot_pot, = ax2.plot([],[], label='E_pot')
 repeat_length=500
 ax2.set_xlim([0,repeat_length])
 ax2.set_ylim([(0 - 0.1*kin_0), (kin_0 + 0.1*kin_0)])
-ax2.legend()
+ax2.legend(loc=7)
+
 
 def update(frame):
     verlet_integration()  # advance system by one step
@@ -192,7 +192,7 @@ def update(frame):
 ani = animation.FuncAnimation(
     fig,
     update,
-    frames=500,
+    frames=1000,
     interval=20,
     blit=False,
     repeat=False

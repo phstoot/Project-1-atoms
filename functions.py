@@ -48,21 +48,6 @@ def min_vector(part1, part2):
     min_vec = np.mod(vec + [0.5*L, 0.5*L], [L,L]) - [0.5*L, 0.5*L]
     return min_vec
 
-def periodic_boundaries(pos, N=2, L=10):
-    '''
-    Causes the particles to stay in the box defined by (L,L).
-    
-    :param: pos (arr): Array of instantaneous positions of all particles.
-    
-    Returns: none
-    '''
-    for i in range(N):
-        pos[i,0] %= L
-        pos[i,1] %= L
-        pos[pos < 0] += L
-    return pos # Need to return pos since it is not globally defined across files
-
-
 ## Energies
 def Kinetic_Energies(vel):
     '''

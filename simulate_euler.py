@@ -4,7 +4,6 @@ from random import randint
 import matplotlib.animation as animation
 from functions import Lennard_Jones_Potential,\
     min_vector, \
-    periodic_boundaries, \
     Interaction_force, \
     Kinetic_Energies
 
@@ -122,7 +121,7 @@ def simulate():
 
     
     #Periodic boundary conditions (Needs to be adjusted, so that if a particle with pos > 2L is floored to its remainder between (0,L))
-    periodic_boundaries(pos)
+    pos %= L
 
     return pos
     
