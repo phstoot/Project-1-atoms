@@ -6,15 +6,16 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-from functions import Lennard_Jones_Potential,\
+from functions import Lennard_Jones_Potential, Interaction_force, \
     min_vector, periodic_boundaries
 
 radii_small = np.linspace(10**-3,1,1000, dtype=float)
-radii_large = np.linspace(1,20,1000, dtype=float)
+radii_large = np.linspace(1,2.5,1000, dtype=float)
 
 potentials_small = Lennard_Jones_Potential(radii_small)
 potentials_large = Lennard_Jones_Potential(radii_large)
-
+force_small = Interaction_force(radii_small)
+force_large = Interaction_force(radii_large)
 
 
 fig, (ax1, ax2) = plt.subplots(2,1)
