@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from random import randint
@@ -7,8 +8,9 @@ from functions import Lennard_Jones_Potential,\
     Interaction_force, \
     Kinetic_Energies
 
+timestr = time.strftime("%d-%m_%H.%M.%S")
 ## Initial conditions
-N = 6
+N = 10
 L = 10
 h = 0.001 # Natural units
 
@@ -45,8 +47,10 @@ for i in range(N):
 # 2) calculate forces at t+h with potential function and positions
 # 3) calculate velocities at t+h with verlet velocity algorithm
 
-def verlet_integration():
-    
+def verlet_integration(pos):
+    # we need to pass pos otherwise it breaks. This is due to Python's distinction 
+    # between local and global variables. I think this is the point where we need
+    # to start thinking about proper restructuring and creating classes.
 
     # we have N particles. For every particle i, we 
     # have to calculate interaction with particle j for j != i. Do the following:
@@ -177,7 +181,7 @@ ax2.legend(loc=7)
 
 
 def update(frame):
-    verlet_integration()  # advance system by one step
+    verlet_integration(pos)  # advance system by one step
     scat.set_offsets(pos)  # update particle positions
     plot_kin.set_xdata(np.arange(frame)) # update time axis
     plot_kin.set_ydata(All_kin[0:frame]) # update energy data
@@ -197,5 +201,6 @@ ani = animation.FuncAnimation(
     blit=False,
     repeat=False
 )
-
+# writervideo = animation.PillowWriter(fps=50) 
+ani.save(fr'Verlet_{N}_particles_{timestr}.gif')
 plt.show()

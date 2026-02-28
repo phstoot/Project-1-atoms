@@ -16,7 +16,6 @@ epsilon = 1.654 * 10**(-10) #119.8 #K (epsilon / k_boltzmann)
 sigma = 3.405 * 10**(-10) # Angstrom
 mass = 6.6 * 10**(-26) # Mass
 
-
 def Interaction_force(r):
     '''
     Calculates force in natural units. 
@@ -31,9 +30,7 @@ def Interaction_force(r):
     )
     return F
 
-
-
-## Minimal image convenction and periodic boundary conditions
+## Minimal image convenction
 def min_vector(part1, part2):
     '''Finds smallest vector connecting particle 1 to particle 2, in the smallest image convention.
     
@@ -61,7 +58,6 @@ def Kinetic_Energies(vel):
     Kin = 1/2 * vel * vel
     return Kin
      
-    
 def Lennard_Jones_Potential(r):
     '''
     Calculates Potential Energy due to each particle interaction, in natural units. 
