@@ -2,12 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from random import randint
 import matplotlib.animation as animation
+from functions import Lennard_Jones_Potential,\
+    min_vector, \
+    periodic_boundaries, \
+    Interaction_force, \
+    Kinetic_Energies
 
 ## We could technically write all equations allowing for both natural and normal units (so using function(*,natural = True))
-
-
-# Define variables
-N = 4
+# Define variables !!! are both used in functions file and here. Find a way to restructure this
+N = 2
 L = 10 # size of box, probably decide later
 
 rho = ... # Particle density, not necessary for now
@@ -15,15 +18,6 @@ T = ... # temperature
 epsilon = 1.654 * 10**(-10) #119.8 #K (epsilon / k_boltzmann)
 sigma = 3.405 * 10**(-10) # Angstrom
 mass = 6.6 * 10**(-26) # Mass
-
-v_max = 10
-
-
-from functions import Lennard_Jones_Potential,\
-    min_vector, \
-    periodic_boundaries, \
-    Interaction_Force, \
-    Kinetic_Energies
 
 
 ## Define particles (init properties)
@@ -36,34 +30,39 @@ class Particle:
         self.velocity = velocity
         self.mass = mass
 
-# Initial Position
-pos = np.random.uniform(0,L,size=(N,2))
-vel = np.random.uniform(0,L, size=(N,2)) # np.zeros((N,2)) #
+# Initialisation
+# pos = np.random.uniform(0,L,size=(N,2))
+# vel = np.random.uniform(-L,L, size=(N,2)) # np.zeros((N,2)) #
+# kin = Kinetic_Energies(np.linalg.norm(vel, axis=1))
+
+# # for testing purposes:
+pos = np.array([[-6, 5.2],
+                [6, 5]], dtype=float)
+vel = np.array([[10, 0],
+                [-10,0]], dtype=float)
+kin = Kinetic_Energies(np.linalg.norm(vel, axis=1))
 
 ## Find change due to interaction with neighbouring particles
 # Simulate maybe 10 time steps first
 
 h = 0.001 # Due to our redefinition
-N_steps = 50
+N_steps = 200
 
-
-print("Old Positions: "+ str(pos))
-print("Old velocities: "+ str(vel))
+print("Start positions: "+ str(pos))
+print("Start velocities: "+ str(vel))
 
 
 ## Create position and velocity (3D) arrays to store data over time
 All_pos = np.zeros((N,2,N_steps+1))
 All_vel = np.zeros((N,2,N_steps+1))
+All_kin = []
+All_pot = []
 
 for i in range(N):
     All_pos[i,0,0] = pos[i,0]
     All_pos[i,1,0] = pos[i,1]
     All_vel[i,0,0] = vel[i,0]
     All_vel[i,1,0] = vel[i,1]
-
-# print(str(All_pos))
-# print(str(All_vel))
-
 
 
 ## Simulation part
@@ -95,8 +94,11 @@ def simulate():
                 min_vec = min_vector(main_particle, int_particle)
                 r = np.linalg.norm(min_vec)
                 
-                # Force magnetiude
-                F_mag = Interaction_force(r)
+                # Force magnitude
+                F_mag = -Interaction_force(r)
+
+                # Potential energy from pair of particles
+                U = Lennard_Jones_Potential(r)
                 
                 # Force vector, note that we already normalized the vector min_vec in the Force function definition
                 Summed_Force[j,0] += F_mag * min_vec[0]
@@ -114,8 +116,9 @@ def simulate():
     vel[:,0] += Summed_Force[:,0] * h
     vel[:,1] += Summed_Force[:,1] * h
 
-    for v in vel:
-        if np.absolute()
+    kin = Kinetic_Energies(np.linalg.norm(vel, axis=1))
+    All_kin.append(np.sum(kin))
+    All_pot.append(U)
 
     
     #Periodic boundary conditions (Needs to be adjusted, so that if a particle with pos > 2L is floored to its remainder between (0,L))
@@ -137,19 +140,18 @@ def simulate():
 
 
 
+# First try of simulation, without function but in loop to store data
 
+for k in range (N_steps):
+    simulate()
+    ## Store pos and velocity in overall array for plotting the evolution later on
+    for m in range(N):
+        All_pos[m,0,k+1] = pos[m,0]
+        All_pos[m,1,k+1] = pos[m,1]
+        All_vel[m,0,k+1] = vel[m,0]
+        All_vel[m,1,k+1] = vel[m,1]
+        
 
-# for k in range (N_steps):
-#     simulate()
-#     ## Store pos and velocity in overall array for plotting the evolution later on
-#     for m in range(N):
-#         All_pos[m,0,k+1] = pos[m,0]
-#         All_pos[m,1,k+1] = pos[m,1]
-#         All_vel[m,0,k+1] = vel[m,0]
-#         All_vel[m,1,k+1] = vel[m,1]
-
-# print(str(All_pos))
-# print(str(All_vel))
 ## Plot particles with their trajectories
 
 
@@ -180,41 +182,55 @@ def static_plot(positions, velocities):
     # plt.grid(True, linestyle='--', alpha=0.5)
     plt.show()
 
-
-# ## Active animation
-# def animated_plot():
-#     .
-
-# static_plot(All_pos, All_vel)
+Total_energy = np.array(All_kin) + np.array(All_pot)
 
 
-# fig, ax= plt.subplots(figsize=(6,6))
-
-
-## Animation part
-fig, ax = plt.subplots(figsize=(6,6))
-ax.set_xlim(0, L)
-ax.set_ylim(0, L)
-ax.set_aspect('equal')
-ax.set_title("Particle Simulation")
-
-# Create scatter object (this is what we update)
-scat = ax.scatter(pos[:,0], pos[:,1], c=colors, s=80)
-
-def update(frame):
-    simulate()  # advance system by one step
-    scat.set_offsets(pos)  # update particle positions
-    return scat,
-
-ani = animation.FuncAnimation(
-    fig,
-    update,
-    frames=1000,
-    interval=20,
-    blit=True
-)
-
+# # Plot the potential and kinetic energies of system over time
+plt.figure(figsize=(6,3))
+plt.plot(np.arange(N_steps), All_kin, label='Ekin')
+plt.plot(np.arange(N_steps), All_pot, label='Epot')
+plt.plot(np.arange(N_steps), Total_energy, label='Etot')
+plt.legend()
+plt.xlabel('t')
+plt.ylabel('E')
 plt.show()
+
+
+
+
+
+
+# # Animation part
+# fig, ax = plt.subplots(figsize=(6,6))
+# ax.set_xlim(0, L)
+# ax.set_ylim(0, L)
+# ax.set_aspect('equal')
+# ax.set_title("Particle Simulation")
+
+# # Create scatter object (this is what we update)
+# scat = ax.scatter(pos[:,0], pos[:,1], c=colors, s=80)
+
+# def update(frame):
+#     simulate()  # advance system by one step
+#     scat.set_offsets(pos)  # update particle positions
+#     return scat,
+
+# ani = animation.FuncAnimation(
+#     fig,
+#     update,
+#     frames=200,
+#     interval=20,
+#     blit=True,
+#     repeat=False
+# )
+
+# plt.show()
+
+# t = np.linspace(0,1000,1001)
+# plt.plot(t, np.linalg.norm(All_vel, axis=1)[0])
+# plt.plot(t, np.linalg.norm(All_vel, axis=1)[1])
+# plt.show()
+
 
 
 # def update(frame):
@@ -234,8 +250,9 @@ plt.show()
 
 
 
-myAnimation = animation.FuncAnimation(fig,simulate,np.arange(1, 2000),interval=1, blit=True, repeat=True)
-plt.show()
+# myAnimation = animation.FuncAnimation(fig,simulate,np.arange(1, 20),interval=1, blit=True, repeat=False)
+# myAnimationvel = animation.FuncAnimation(fig2,simulate,np.arange(1, 2000),interval=1, blit=True, repeat=False)
+# plt.show()
 
 
 

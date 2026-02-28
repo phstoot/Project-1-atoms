@@ -7,7 +7,7 @@ from random import randint
 
 
 # Define variables
-N = 4
+N = 2
 L = 10 # size of box, probably decide later
 
 rho = ... # Particle density, not necessary for now
@@ -26,7 +26,7 @@ def Interaction_force(r):
     :return (float) : Magnitude of Interaction Force  
     '''
     
-    ## Check again if -13 or -14
+    
     F = 24 * (2 * r**(-14) - r**(-8)
     )
     return F
