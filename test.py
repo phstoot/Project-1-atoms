@@ -23,3 +23,43 @@ ax1.plot(radii_small, potentials_small)
 ax2.plot(radii_large, potentials_large)
 ax1.set_yscale("log")
 plt.show()
+
+
+
+## test while loop vs for loop
+N = 1000
+
+k = 0
+while k < N:      
+    m = 0
+    while m < N:
+        if m != k:
+             print('while loop', k, m)
+        m += 1
+        
+    k += 1 
+
+N = 1000
+
+for i in range(N):
+        for j in range(N):
+            if i != j:
+                print('for loop:', i, j)
+
+# N = 100:
+# While loop:
+# CPU times: user 60.2 ms, sys: 12.1 ms, total: 72.2 ms
+# Wall time: 72.2 ms
+# For loop:
+# CPU times: user 60.8 ms, sys: 11.1 ms, total: 71.9 ms
+# Wall time: 71.3 ms
+
+# N = 1000:
+# While loop:
+# CPU times: user 5.37 s, sys: 871 ms, total: 6.24 s
+# Wall time: 6.53 s
+# For loop:
+# CPU times: user 5.35 s, sys: 879 ms, total: 6.23 s
+# Wall time: 6.5 s
+
+
