@@ -10,17 +10,19 @@ from functions import Lennard_Jones_Potential,\
 
 timestr = time.strftime("%d-%m_%H.%M.%S")
 ## Initial conditions
-N = 4
+N = 3
 L = 10
 h = 0.001 # Natural units
-
+dim = 2
 N_steps = 1000
 
 # # for testing purposes:
-# pos = np.array([[-6.5, 5.1],
-#                 [6.5, 5]], dtype=float)
-# vel = np.array([[8, 0],
-#                 [-8,0]], dtype=float)
+pos = np.array([[-8, 9.8],
+                [8, 9.8],
+                [5, 5]], dtype=float) / 3
+vel = np.array([[-10, 0],
+                [10,0],
+                [-25,-25]], dtype=float) / 3
 
 pos = np.random.uniform(0,L,size=(N,2))
 vel = np.random.uniform(-4*L,4*L, size=(N,2))
@@ -69,7 +71,7 @@ def verlet_integration(pos, vel):
         for j in range(N):
             interacting_particle = pos[j,:]
             if j != i:
-                r_vector = min_vector(main_particle, interacting_particle)
+                r_vector = min_vector(main_particle, interacting_particle, L=L, dim=dim)
                 r = np.linalg.norm(r_vector)
                 F_mag = -Interaction_force(r)
                 U = Lennard_Jones_Potential(r)
@@ -99,11 +101,9 @@ def verlet_integration(pos, vel):
         for j in range(N):
             interacting_particle = pos[j,:]
             if i != j:
-                r_vector = min_vector(main_particle, interacting_particle)
+                r_vector = min_vector(main_particle, interacting_particle, L=L, dim=dim)
                 r = np.linalg.norm(r_vector)
                 F_mag = -Interaction_force(r)
-                U = Lennard_Jones_Potential(r)
-
                 # Force vector, note that we already normalized the vector min_vec in the Force function definition
                 F_t_plus_h[i] += F_mag * r_vector
 
@@ -166,7 +166,7 @@ ax.set_aspect('equal')
 ax.set_title("Verlet Algorithm")
 
 # Create scatter object (this is what we update)
-scat = ax.scatter(pos[:,0], pos[:,1], c='r', s=80)
+scat = ax.scatter(pos[:,0], pos[:,1], c='r', s=100)
 plot_kin, = ax2.plot([],[], label='E_kin')
 plot_pot, = ax2.plot([],[], label='E_pot')
 #rolling window size
