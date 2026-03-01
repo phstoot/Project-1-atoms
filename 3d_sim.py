@@ -10,11 +10,12 @@ from functions import Lennard_Jones_Potential,\
 
 timestr = time.strftime("%d-%m_%H.%M.%S")
 ## Initial conditions
-N = 4
+N = 2
 L = 10
 h = 0.001 # Natural units
 
-N_steps = 1000
+dim = 3
+N_steps = 300
 
 # # for testing purposes:
 # pos = np.array([[-6.5, 5.1],
@@ -22,22 +23,21 @@ N_steps = 1000
 # vel = np.array([[8, 0],
 #                 [-8,0]], dtype=float)
 
-pos = np.random.uniform(0,L,size=(N,2))
-vel = np.random.uniform(-4*L,4*L, size=(N,2))
+pos = np.random.uniform(0,L,size=(N,dim))
+vel = np.random.uniform(-4*L,4*L, size=(N,dim))
 kin_0 = np.sum(Kinetic_Energies(np.linalg.norm(vel, axis=1))) # initial kinetic energy to set y limit in animation
 
 
 #Create position and velocity (3D) arrays to store data over time
-All_pos = np.zeros((N,2,N_steps+1))
-All_vel = np.zeros((N,2,N_steps+1))
+All_pos = np.zeros((N,dim,N_steps+1))
+All_vel = np.zeros((N,dim,N_steps+1))
 All_kin = []
 All_pot = []
 
 for i in range(N):
-    All_pos[i,0,0] = pos[i,0]
-    All_pos[i,1,0] = pos[i,1]
-    All_vel[i,0,0] = vel[i,0]
-    All_vel[i,1,0] = vel[i,1]
+    for j in range(dim):
+        All_pos[i,j,0] = pos[i,j]
+        All_vel[i,j,0] = vel[i,j]
 
 
 
@@ -48,7 +48,7 @@ for i in range(N):
 # 3) calculate velocities at t+h with verlet velocity algorithm
 
 def verlet_integration(pos, vel):
-    # we need to pass pos and vel otherwise it breaks. This is due to Python's distinction 
+    # we need to pass pos otherwise it breaks. This is due to Python's distinction 
     # between local and global variables. I think this is the point where we need
     # to start thinking about proper restructuring and creating classes.
 
@@ -61,7 +61,7 @@ def verlet_integration(pos, vel):
     # Only use for loops if necessary
     
     # this block calculates forces at time t
-    F_t = np.zeros((N,2))
+    F_t = np.zeros((N,dim))
     U_t = 0
     
     for i in range(N):
