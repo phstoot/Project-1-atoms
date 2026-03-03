@@ -37,3 +37,9 @@ class Simulation:
     def save(self):
         # and specify in what form
         pass
+
+
+# also maybe: class to store state
+
+class State_of_Simulation(Simulation):
+    # inheritance of Simulation used here
