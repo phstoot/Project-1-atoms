@@ -1,13 +1,150 @@
+<<<<<<< HEAD
 class Simulation:
     """
     Docstring here.
     
     """
+=======
+import math
+import warnings
+import numpy as np
+>>>>>>> 459530f (Added two validation classes to validate input, constructor now relatively robust)
 
-    def __init__(self, density, temp, N_particles=108, L=10, dim=3):
-        self.density = density
-        #etc
+class PositiveInteger:
+    """A descriptor class to validate if a value is an integer and positive.
+    """
+    def __set_name__(self, owner, name):
+        self._name = name
+
+    def __get__(self, instance, owner):
+        return instance.__dict__[self._name]
+
+    def __set__(self, instance, value):
+        if isinstance(value, float):
+            if not value.is_integer():
+                raise ValueError(f"{self._name} must be an integer, got {value}")
+            warnings.warn(f"{self._name} was passed as float ({value}), converting to int")
+            value = int(value)
+        if not isinstance(value, int) or value <= 0:
+            raise ValueError(f"{self._name} must be a positive integer")
+        instance.__dict__[self._name] = value
+
+class PositiveFloat:
+    """A descriptor class to validate if a value is a float and positive.
+    """
+    def __set_name__(self, owner, name):
+        self._name = name
+
+    def __get__(self, instance, owner):
+        return instance.__dict__[self._name]
+
+    def __set__(self, instance, value):
+        if isinstance(value, int):
+            value = float(value)
+        if not isinstance(value, float) or value <= 0:
+            raise ValueError(f"{self._name} must be a positive float")
+        instance.__dict__[self._name] = value
+
+
+class Simulation:
+    """A simulation class used to build and run a molecular dynamics simulation. 
+
+    Parameters
+    ----------
+    density : float
+        _description_
+    num_particles : int, optional
+        _description_, by default 108
+    boxsize : float, optional
+        _description_, by default 10
+    dim : int, optional
+        _description_, by default 2
+    timestep_h : float, optional
+        _description_, by default 0.001
+    units : str, optional
+        _description_, by default 'natural'
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    ValueError
+        _description_
+    """
+    # Descriptors for repeated validation rules
+    density      = PositiveFloat()
+    temp         = PositiveFloat()
+    boxsize      = PositiveFloat()
+    timestep_h   = PositiveFloat()
+    num_particles = PositiveInteger()
+
+
+    def __init__(
+            self, 
+            density : float, # prevent negative values (with @property?)
+            temp : float, 
+            num_particles : int = 108, 
+            boxsize : float     = 10, 
+            dim : int           = 2, 
+            timestep_h : float  = 0.001, 
+            units : str         = 'natural'
+
+        ):
+        """_summary_
+
+        Parameters
+        ----------
+        density : float
+            _description_
+        num_particles : int, optional
+            _description_, by default 108
+        boxsize : float, optional
+            _description_, by default 10
+        dim : int, optional
+            _description_, by default 2
+        timestep_h : float, optional
+            _description_, by default 0.001
+        units : str, optional
+            _description_, by default 'natural'
+        """
+        
+        self.density       = density
+        self.temp          = temp
+        self.num_particles = num_particles
+        self.boxsize       = boxsize
+        self.dim           = dim            # goes through @property setter
+        self.timestep_h    = timestep_h
+        self.units         = units          # goes through @property setter
+        self.positions     = np.empty((dim, num_particles))
+        self.velocities    = np.empty((dim, num_particles))
         pass
+
+    @property
+    def dim(self):
+        return self._dim
+    
+    @dim.setter
+    def dim(self, value):
+        if isinstance(value, float):
+            value = int(value)
+        if not value in (2, 3):
+            raise ValueError(f"dim must be 2 or 3 (integer), got {value!r}")
+        self._dim = value
+
+    @property
+    def units(self):
+        return self._units
+    
+    @units.setter
+    def units(self, value):
+        if not isinstance(value, str) or not value in ('natural', 'SI'):
+            raise ValueError(f"units must be 'natural' or 'SI', got {value!r}")
+        self._units = value
 
     def __repr__(self):
         # write a formal representation for this class
@@ -17,11 +154,11 @@ class Simulation:
         # write an informal string representation for this class
         pass
 
-    def equilibrate(self):
+    def equilibrate(self, density, temp):
         # see lecture 4 and coding guidelines
         pass
 
-    def simulate(self, algorithm, time):
+    def simulate(self, algorithm, time, *, live_animation=True, store_arrays=True):
         # see lecture 4
         # time how long to simulate?
         # algorithm: euler or verlet
@@ -34,7 +171,10 @@ class Simulation:
         # just an idea
         pass
 
-    def save(self):
+    def deconstruct(self):
+        pass
+
+    def save_animation(self):
         # and specify in what form
         pass
 
@@ -43,3 +183,6 @@ class Simulation:
 
 class State_of_Simulation(Simulation):
     # inheritance of Simulation used here
+    pass
+
+
