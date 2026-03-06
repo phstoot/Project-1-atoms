@@ -1,7 +1,7 @@
 import math
 import warnings
 import numpy as np
-
+import matplotlib.pyplot as plt
 from functions import Interaction_force
 
 
@@ -115,10 +115,7 @@ class Simulation:
         
         self.positions       = self._init_positions()
         self.velocities      = self._init_velocities()
-        self.forces          = {
-            't': np.zeros((num_particles, dim)), 
-            't+h': np.zeros((num_particles, dim))
-            } # both forces at t and t+h are needed for Verlet's algorithm
+        self.forces          = self._net_forces()
         
         self.positions_hist  = []
         self.velocities_hist = []
@@ -176,44 +173,68 @@ class Simulation:
         diff = (diff + 0.5*self.boxsize) % self.boxsize - 0.5*self.boxsize # minimal image convention
         return diff
     
-    def _update_forces(self, time='t'):
-        """Since forces are updated twice in the Verlet Algorithm, and both F(t) and F(t+h)
-        are needed to advance a step, specify which time the forces are computed at.
-
-        Parameters
-        ----------
-        step : str, optional
-            't' or 't+h', by default 't'
+    def _net_forces(self):
+        """The pairwise vector matrix is used to find the interaction 
+        force between each particle pair, then all forces are summed 
+        over an axis to find the net force on each particle. Returns final array to 
+        enable storage of multiple force arrays in one simulation step.
         """
         diff = self._pairwise_diff_vector_matrix()
         dist = np.linalg.norm(diff, axis=-1)
         F_mag = -Interaction_force(dist)
         F_matrix = F_mag[:, :, np.newaxis] * diff
-        self.forces[time] = F_matrix.sum(axis=1)
+        return F_matrix.sum(axis=1)
     
     def _update_positions(self):
         """Private method: use Verlet's algorithm to update positions, with box constraints applied. Part of general step in the simulation.
         """
-        self.positions += self.timestep_h * self.velocities + 0.5 * (self.timestep_h**2) * self.forces['t']
+        self.positions += self.timestep_h * self.velocities + 0.5 * (self.timestep_h**2) * self.forces
         self.positions %= self.boxsize
 
-    def _update_velocities(self):
+    def _update_velocities(self, new_forces):
         """Private method: use Verlet's algorithm to update velocities. Part of general step in the simulation.
         """
-        self.velocities += 0.5 * self.timestep_h * (self.forces['t'] + self.forces['t+h'])
+        self.velocities += 0.5 * self.timestep_h * (self.forces + new_forces)
     
     def _step(self):
         """Private method: Advance the system by one step with Verlet's Algorithm
         """
-        self._update_forces(time='t') # find force(t)
-        self._update_positions()
-        self._update_forces(time='t+h')
-        self._update_velocities()
+        self._update_positions()            # with self.forces from initialization or previous step
+        new_forces = self._net_forces()
+        self._update_velocities(new_forces) # uses both F(t) and F(t+h)
+        self.forces = new_forces            # roll forward
     
     def run(self, steps=1000):
         """Run the simulation
         """
-        
+
+
+
+    def run_live(self):
+        fig, (ax, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(6,8), height_ratios=[6,3])
+        fig.suptitle('Live animation window')
+        ax = fig.add_subplot(2,1,1, projection='3d')
+        ax.set_xlim(0, self.boxsize)
+        ax.set_ylim(0, self.boxsize)
+        ax.set_zlim(0, self.boxsize)
+        ax.set_aspect('equal')
+        ax.grid(False)
+        scat = ax.scatter(self.positions[:,0], self.positions[:,1], self.positions[:,2])
+
+        ax2 = fig.add_subplot(2,1,2)
+        (plot_kin,) = ax2.plot([], [], label="E_kin")
+        (plot_pot,) = ax2.plot([], [], label="E_pot")
+        # rolling window size
+        repeat_length = 500
+        ax2.set_xlim([0, repeat_length])
+        ax2.set_ylim([(0 - 0.1 * kin_0) / N, (kin_0 + 0.1 * kin_0) / N])
+        # ax2.set_yscale("symlog", linthresh=1e-2)
+        ax2.legend(loc=7)
+
+        def update(self, frame):
+            self._step() # advance system by one step
+            scat._offsets3d = 
+
     
     # def equilibrate(self, density, temp):
     #     # see lecture 4 and coding guidelines
