@@ -47,6 +47,7 @@ for i in range(N):
 
 ## Simulation function
 # algorithmically, follow the following steps:
+# 0) calculate forces at t with old positions
 # 1) calculate positions at t+h with verlet position algorithm
 # 2) calculate forces at t+h with potential function and positions
 # 3) calculate velocities at t+h with verlet velocity algorithm

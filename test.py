@@ -7,10 +7,10 @@ from matplotlib import pyplot as plt
 
 
 from functions import Lennard_Jones_Potential, Interaction_force, \
-    min_vector, periodic_boundaries
+    min_vector
 
 radii_small = np.linspace(10**-3,1,1000, dtype=float)
-radii_large = np.linspace(1,2.5,1000, dtype=float)
+radii_large = np.linspace(1,5,1000, dtype=float)
 
 potentials_small = Lennard_Jones_Potential(radii_small)
 potentials_large = Lennard_Jones_Potential(radii_large)
@@ -27,24 +27,24 @@ plt.show()
 
 
 ## test while loop vs for loop
-N = 1000
+# N = 1000
 
-k = 0
-while k < N:      
-    m = 0
-    while m < N:
-        if m != k:
-             print('while loop', k, m)
-        m += 1
+# k = 0
+# while k < N:      
+#     m = 0
+#     while m < N:
+#         if m != k:
+#              print('while loop', k, m)
+#         m += 1
         
-    k += 1 
+#     k += 1 
 
-N = 1000
+# N = 1000
 
-for i in range(N):
-        for j in range(N):
-            if i != j:
-                print('for loop:', i, j)
+# for i in range(N):
+#         for j in range(N):
+#             if i != j:
+#                 print('for loop:', i, j)
 
 # N = 100:
 # While loop:
@@ -63,3 +63,7 @@ for i in range(N):
 # Wall time: 6.5 s
 
 
+
+test_sim = Simulation(intialiasdfsdlavarab)
+
+test_sim.equilibrate()
