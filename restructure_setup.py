@@ -176,14 +176,44 @@ class Simulation:
         diff = (diff + 0.5*self.boxsize) % self.boxsize - 0.5*self.boxsize # minimal image convention
         return diff
     
-    def _update_forces(self):
+    def _update_forces(self, time='t'):
+        """Since forces are updated twice in the Verlet Algorithm, and both F(t) and F(t+h)
+        are needed to advance a step, specify which time the forces are computed at.
+
+        Parameters
+        ----------
+        step : str, optional
+            't' or 't+h', by default 't'
+        """
         diff = self._pairwise_diff_vector_matrix()
         dist = np.linalg.norm(diff, axis=-1)
         F_mag = -Interaction_force(dist)
         F_matrix = F_mag[:, :, np.newaxis] * diff
-        self.forces['t'] = F_matrix.sum(axis=1)
+        self.forces[time] = F_matrix.sum(axis=1)
     
+    def _update_positions(self):
+        """Private method: use Verlet's algorithm to update positions, with box constraints applied. Part of general step in the simulation.
+        """
+        self.positions += self.timestep_h * self.velocities + 0.5 * (self.timestep_h**2) * self.forces['t']
+        self.positions %= self.boxsize
+
+    def _update_velocities(self):
+        """Private method: use Verlet's algorithm to update velocities. Part of general step in the simulation.
+        """
+        self.velocities += 0.5 * self.timestep_h * (self.forces['t'] + self.forces['t+h'])
     
+    def _step(self):
+        """Private method: Advance the system by one step with Verlet's Algorithm
+        """
+        self._update_forces(time='t') # find force(t)
+        self._update_positions()
+        self._update_forces(time='t+h')
+        self._update_velocities()
+    
+    def run(self, steps=1000):
+        """Run the simulation
+        """
+        
     
     # def equilibrate(self, density, temp):
     #     # see lecture 4 and coding guidelines
