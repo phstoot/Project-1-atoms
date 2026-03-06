@@ -1,18 +1,12 @@
-<<<<<<< HEAD
-class Simulation:
-    """
-    Docstring here.
-    
-    """
-=======
 import math
 import warnings
 import numpy as np
->>>>>>> 459530f (Added two validation classes to validate input, constructor now relatively robust)
+
+from functions import Interaction_force
+
 
 class PositiveInteger:
-    """A descriptor class to validate if a value is an integer and positive.
-    """
+    """A descriptor class to validate if a value is an integer and positive."""
     def __set_name__(self, owner, name):
         self._name = name
 
@@ -30,8 +24,7 @@ class PositiveInteger:
         instance.__dict__[self._name] = value
 
 class PositiveFloat:
-    """A descriptor class to validate if a value is a float and positive.
-    """
+    """A descriptor class to validate if a value is a float and positive."""
     def __set_name__(self, owner, name):
         self._name = name
 
@@ -47,7 +40,7 @@ class PositiveFloat:
 
 
 class Simulation:
-    """A simulation class used to build and run a molecular dynamics simulation. 
+    """A simulation class used to build and run an Argon molecular dynamics simulation. 
 
     Parameters
     ----------
@@ -83,11 +76,10 @@ class Simulation:
     timestep_h   = PositiveFloat()
     num_particles = PositiveInteger()
 
-
     def __init__(
             self, 
-            density : float, # prevent negative values (with @property?)
-            temp : float, 
+            density : float     = 1, #FOR NOW # prevent negative values (with @property?)
+            temp : float        = 1, #FOR NOW
             num_particles : int = 108, 
             boxsize : float     = 10, 
             dim : int           = 2, 
@@ -113,15 +105,30 @@ class Simulation:
             _description_, by default 'natural'
         """
         
-        self.density       = density
-        self.temp          = temp
-        self.num_particles = num_particles
-        self.boxsize       = boxsize
-        self.dim           = dim            # goes through @property setter
-        self.timestep_h    = timestep_h
-        self.units         = units          # goes through @property setter
-        self.positions     = np.empty((dim, num_particles))
-        self.velocities    = np.empty((dim, num_particles))
+        self.density         = density
+        self.temp            = temp
+        self.num_particles   = num_particles
+        self.boxsize         = boxsize
+        self.dim             = dim            # goes through @property setter
+        self.timestep_h      = timestep_h
+        self.units           = units          # goes through @property setter
+        
+        self.positions       = self._init_positions()
+        self.velocities      = self._init_velocities()
+        self.forces          = {
+            't': np.zeros((num_particles, dim)), 
+            't+h': np.zeros((num_particles, dim))
+            } # both forces at t and t+h are needed for Verlet's algorithm
+        
+        self.positions_hist  = []
+        self.velocities_hist = []
+        self.forces_hist     = []
+        self.e_kin_hist      = []
+        self.e_pot_hist      = []
+        self.e_tot_hist      = []
+
+
+
         pass
 
     @property
@@ -147,16 +154,40 @@ class Simulation:
         self._units = value
 
     def __repr__(self):
-        # write a formal representation for this class
-        pass
+        return (f"Simulation(density={self.density}, temp={self.temp}, "
+                f"num_particles={self.num_particles}, boxsize={self.boxsize}, "
+                f"dim={self.dim}, timestep_h={self.timestep_h}, units={self.units})")
 
-    def __str__(self):
-        # write an informal string representation for this class
-        pass
+    def _init_positions(self):
+        """Private method to initialize positions. FOR NOW: get working with usual random init.
+        """
+        return np.random.uniform(0, self.boxsize, size=(self.num_particles, self.dim))
+    
+    def _init_velocities(self):
+        """Private method to initialize velocities. FOR NOW: get working with usual random init.
+        """
+        return np.random.uniform(-4*self.boxsize, 4*self.boxsize, size=(self.num_particles, self.dim))
 
-    def equilibrate(self, density, temp):
-        # see lecture 4 and coding guidelines
-        pass
+    def _pairwise_diff_vector_matrix(self):
+        """Generate a pairwise vector matrix with e_ij the vector between particle i and j.
+        The minimal image convention is implemented.
+        """
+        diff = self.positions[:, np.newaxis, :] - self.positions[np.newaxis, :, :] # shape (N, N, dim)
+        diff = (diff + 0.5*self.boxsize) % self.boxsize - 0.5*self.boxsize # minimal image convention
+        return diff
+    
+    def _update_forces(self):
+        diff = self._pairwise_diff_vector_matrix()
+        dist = np.linalg.norm(diff, axis=-1)
+        F_mag = -Interaction_force(dist)
+        F_matrix = F_mag[:, :, np.newaxis] * diff
+        self.forces['t'] = F_matrix.sum(axis=1)
+    
+    
+    
+    # def equilibrate(self, density, temp):
+    #     # see lecture 4 and coding guidelines
+    #     pass
 
     def simulate(self, algorithm, time, *, live_animation=True, store_arrays=True):
         # see lecture 4
@@ -177,12 +208,5 @@ class Simulation:
     def save_animation(self):
         # and specify in what form
         pass
-
-
-# also maybe: class to store state
-
-class State_of_Simulation(Simulation):
-    # inheritance of Simulation used here
-    pass
 
 
