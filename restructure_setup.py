@@ -210,7 +210,7 @@ class Simulation:
 
 
 
-    def run_live(self):
+    def run_live(self): # unfinished
         fig, (ax, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(6,8), height_ratios=[6,3])
         fig.suptitle('Live animation window')
         ax = fig.add_subplot(2,1,1, projection='3d')
