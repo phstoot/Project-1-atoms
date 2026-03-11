@@ -2,7 +2,7 @@ import math
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-from functions import Interaction_force
+from functions import interaction_force, lennard_jones_potential
 
 
 class PositiveInteger:
@@ -80,7 +80,7 @@ class Simulation:
             self, 
             density : float     = 1, #FOR NOW # prevent negative values (with @property?)
             temp : float        = 1, #FOR NOW
-            num_particles : int = 108, 
+            num_particles : int = 10, 
             boxsize : float     = 10, 
             dim : int           = 2, 
             timestep_h : float  = 0.001, 
@@ -169,7 +169,7 @@ class Simulation:
         """Generate a pairwise vector matrix with e_ij the vector between particle i and j.
         The minimal image convention is implemented.
         """
-        diff = self.positions[:, np.newaxis, :] - self.positions[np.newaxis, :, :] # shape (N, N, dim)
+        diff = self.positions[np.newaxis, :, :] - self.positions[:, np.newaxis, :] # shape (N, N, dim)
         diff = (diff + 0.5*self.boxsize) % self.boxsize - 0.5*self.boxsize # minimal image convention
         return diff
     
@@ -181,7 +181,8 @@ class Simulation:
         """
         diff = self._pairwise_diff_vector_matrix()
         dist = np.linalg.norm(diff, axis=-1)
-        F_mag = -Interaction_force(dist)
+        np.fill_diagonal(dist, np.inf) # mask diagonals to prevent division by zero
+        F_mag = -interaction_force(dist)
         F_matrix = F_mag[:, :, np.newaxis] * diff
         return F_matrix.sum(axis=1)
     
@@ -196,6 +197,15 @@ class Simulation:
         """
         self.velocities += 0.5 * self.timestep_h * (self.forces + new_forces)
     
+    def _kinetic_energy(self):
+        return 0.5 * np.sum(self.velocities**2) # sum squared components identical to summing squared vector norms
+    
+    def _potential_energy(self):
+        diff = self._pairwise_diff_vector_matrix() # OPTIMIZE: the matrix calculation (O(N^2)) is done both here and in force method
+        dist = np.linalg.norm(diff, axis=-1)
+        np.fill_diagonal(dist, np.inf) # mask diagonals to prevent division by zero
+        return 0.5 * np.sum(lennard_jones_potential(dist))
+
     def _step(self):
         """Private method: Advance the system by one step with Verlet's Algorithm
         """
@@ -204,60 +214,74 @@ class Simulation:
         self._update_velocities(new_forces) # uses both F(t) and F(t+h)
         self.forces = new_forces            # roll forward
     
-    def run(self, steps=1000):
-        """Run the simulation
+    def run(self, steps: int=1000, sample_interval: int | None = None):
+        """Run the simulation. implement sample interval for long simulations to keep history size manageable
         """
+        if sample_interval is None:
+            sample_interval = max(1, steps // 1000)
+        
+        for step in range(steps):
+            if step % sample_interval == 0:
+                self.positions_hist.append(self.positions.copy())
+                self.velocities_hist.append(self.velocities.copy())
+                self.forces_hist.append(self.forces.copy())
+                self.e_kin_hist.append(self._kinetic_energy())
+                self.e_pot_hist.append(self._potential_energy())
+            self._step()
+            
+
+# test = Simulation()
 
 
 
-    def run_live(self): # unfinished
-        fig, (ax, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(6,8), height_ratios=[6,3])
-        fig.suptitle('Live animation window')
-        ax = fig.add_subplot(2,1,1, projection='3d')
-        ax.set_xlim(0, self.boxsize)
-        ax.set_ylim(0, self.boxsize)
-        ax.set_zlim(0, self.boxsize)
-        ax.set_aspect('equal')
-        ax.grid(False)
-        scat = ax.scatter(self.positions[:,0], self.positions[:,1], self.positions[:,2])
+    # def run_live(self): # unfinished
+    #     fig, (ax, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(6,8), height_ratios=[6,3])
+    #     fig.suptitle('Live animation window')
+    #     ax = fig.add_subplot(2,1,1, projection='3d')
+    #     ax.set_xlim(0, self.boxsize)
+    #     ax.set_ylim(0, self.boxsize)
+    #     ax.set_zlim(0, self.boxsize)
+    #     ax.set_aspect('equal')
+    #     ax.grid(False)
+    #     scat = ax.scatter(self.positions[:,0], self.positions[:,1], self.positions[:,2])
 
-        ax2 = fig.add_subplot(2,1,2)
-        (plot_kin,) = ax2.plot([], [], label="E_kin")
-        (plot_pot,) = ax2.plot([], [], label="E_pot")
-        # rolling window size
-        repeat_length = 500
-        ax2.set_xlim([0, repeat_length])
-        ax2.set_ylim([(0 - 0.1 * kin_0) / N, (kin_0 + 0.1 * kin_0) / N])
-        # ax2.set_yscale("symlog", linthresh=1e-2)
-        ax2.legend(loc=7)
+    #     ax2 = fig.add_subplot(2,1,2)
+    #     (plot_kin,) = ax2.plot([], [], label="E_kin")
+    #     (plot_pot,) = ax2.plot([], [], label="E_pot")
+    #     # rolling window size
+    #     repeat_length = 500
+    #     ax2.set_xlim([0, repeat_length])
+    #     ax2.set_ylim([(0 - 0.1 * kin_0) / N, (kin_0 + 0.1 * kin_0) / N])
+    #     # ax2.set_yscale("symlog", linthresh=1e-2)
+    #     ax2.legend(loc=7)
 
-        def update(self, frame):
-            self._step() # advance system by one step
-            scat._offsets3d = 
+    #     def update(self, frame):
+    #         self._step() # advance system by one step
+    #         scat._offsets3d = 
 
     
     # def equilibrate(self, density, temp):
     #     # see lecture 4 and coding guidelines
     #     pass
 
-    def simulate(self, algorithm, time, *, live_animation=True, store_arrays=True):
-        # see lecture 4
-        # time how long to simulate?
-        # algorithm: euler or verlet
+    # def simulate(self, algorithm, time, *, live_animation=True, store_arrays=True):
+    #     # see lecture 4
+    #     # time how long to simulate?
+    #     # algorithm: euler or verlet
 
-        #i'd say: based on chosen algorithm, import correct function
-        # from other file
-        pass
+    #     #i'd say: based on chosen algorithm, import correct function
+    #     # from other file
+    #     pass
 
-    def quickshow(self):
-        # just an idea
-        pass
+    # def quickshow(self):
+    #     # just an idea
+    #     pass
 
-    def deconstruct(self):
-        pass
+    # def deconstruct(self):
+    #     pass
 
-    def save_animation(self):
-        # and specify in what form
-        pass
+    # def save_animation(self):
+    #     # and specify in what form
+    #     pass
 
 
