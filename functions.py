@@ -4,11 +4,11 @@ from random import randint
 
 ## We could technically write all equations allowing for both natural and normal units (so using function(*,natural = True))
 
-rho = ...  # Particle density, not necessary for now
-T = ...  # temperature
-epsilon = 1.654 * 10 ** (-10)  # 119.8 #K (epsilon / k_boltzmann)
-sigma = 3.405 * 10 ** (-10)  # Angstrom
-mass = 6.6 * 10 ** (-26)  # Mass
+# rho = ...  # Particle density, not necessary for now
+# T = ...  # temperature
+# epsilon = 1.654 * 10 ** (-10)  # 119.8 #K (epsilon / k_boltzmann)
+# sigma = 3.405 * 10 ** (-10)  # Angstrom
+# mass = 6.6 * 10 ** (-26)  # Mass
 
 
 def interaction_force(r):
