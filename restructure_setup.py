@@ -78,10 +78,10 @@ class Simulation:
 
     def __init__(
             self, 
-            density : float     = 1, #FOR NOW # prevent negative values (with @property?)
+            density : float     = 0.8, #FOR NOW 
             temp : float        = 1, #FOR NOW
-            num_particles : int = 10, 
-            dim : int           = 2, 
+            num_particles : int = 108, 
+            dim : int           = 3, 
             timestep_h : float  = 0.001, 
             units : str         = 'natural'
 
@@ -131,6 +131,8 @@ class Simulation:
             value = int(value)
         if not value in (2, 3):
             raise ValueError(f"dim must be 2 or 3 (integer), got {value!r}")
+        elif value == 2:
+            raise ValueError("The code does not work yet for 2D (position grid init)")
         self._dim = value
 
     @property
@@ -149,9 +151,27 @@ class Simulation:
                 f"dim={self.dim}, timestep_h={self.timestep_h}, units={self.units})")
 
     def _init_positions(self):
-        """Private method to initialize positions. FOR NOW: get working with usual random init.
+        """Private method to initialize positions based on the face-centered cubic (FCC) lattice, the assumed 
+        starting configuration for Argon.
         """
-        return np.random.uniform(0, self.boxsize, size=(self.num_particles, self.dim))
+        basis = np.array([[0,   0,   0. ],
+                          [0.5, 0.5, 0. ],
+                          [0.5, 0,   0.5],
+                          [0,   0.5, 0.5]])
+        n = int(round(self.num_particles / 4) ** (1/3))
+        if 4 * n**3 != self.num_particles:
+            warnings.warn(f"num_particles={self.num_particles} is not a perfect FCC number. "
+                          f"Nearest valid values are {4*(n)**3} or {4*(n+1)**3}.")
+        cell_size = self.boxsize / n
+
+        positions = []
+        for ix in range(n):
+            for iy in range(n):
+                for iz in range(n):
+                    offset = np.array([ix, iy, iz]) * cell_size
+                    for b in basis:
+                        positions.append(offset + b * cell_size)
+        return np.array(positions[:self.num_particles])
     
     def _init_velocities(self):
         """Private method to initialize velocities. FOR NOW: get working with usual random init.
