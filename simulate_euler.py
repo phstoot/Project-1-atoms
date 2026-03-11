@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 from random import randint
 import matplotlib.animation as animation
 from functions import (
-    Lennard_Jones_Potential,
+    lennard_jones_potential,
     min_vector,
-    Interaction_force,
+    interaction_force,
     Kinetic_Energies,
 )
 
@@ -95,10 +95,10 @@ def simulate():
                 r = np.linalg.norm(min_vec)
 
                 # Force magnitude
-                F_mag = -Interaction_force(r)
+                F_mag = -interaction_force(r)
 
                 # Potential energy from pair of particles
-                U = Lennard_Jones_Potential(r)
+                U = lennard_jones_potential(r)
 
                 # Force vector, note that we already normalized the vector min_vec in the Force function definition
                 Summed_Force[j, 0] += F_mag * min_vec[0]

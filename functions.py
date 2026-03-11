@@ -11,7 +11,7 @@ sigma = 3.405 * 10 ** (-10)  # Angstrom
 mass = 6.6 * 10 ** (-26)  # Mass
 
 
-def Interaction_force(r):
+def interaction_force(r):
     """
     Calculates force in natural units.
 
@@ -56,7 +56,7 @@ def Kinetic_Energies(vel):
     return Kin
 
 
-def Lennard_Jones_Potential(r):
+def lennard_jones_potential(r):
     """
     Calculates Potential Energy due to each particle interaction, in natural units.
 
