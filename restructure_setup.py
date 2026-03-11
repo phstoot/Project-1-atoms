@@ -101,7 +101,6 @@ class Simulation:
         units : str, optional
             _description_, by default 'natural'
         """
-        
         self.density         = density
         self.temp            = temp
         self.num_particles   = num_particles
@@ -158,8 +157,8 @@ class Simulation:
                           [0.5, 0.5, 0. ],
                           [0.5, 0,   0.5],
                           [0,   0.5, 0.5]])
-        n = int(round(self.num_particles / 4) ** (1/3))
-        if 4 * n**3 != self.num_particles:
+        n = int(round((self.num_particles / 4) ** (1/3)))
+        if abs(4 * n**3 - self.num_particles) > 0:
             warnings.warn(f"num_particles={self.num_particles} is not a perfect FCC number. "
                           f"Nearest valid values are {4*(n)**3} or {4*(n+1)**3}.")
         cell_size = self.boxsize / n
@@ -174,9 +173,12 @@ class Simulation:
         return np.array(positions[:self.num_particles])
     
     def _init_velocities(self):
-        """Private method to initialize velocities. FOR NOW: get working with usual random init.
+        """Private method to initialize velocities. We draw samples from a gaussian distribution centred
+        at zero and with variance = temperature (natural units).
         """
-        return np.random.uniform(-4*self.boxsize, 4*self.boxsize, size=(self.num_particles, self.dim))
+        vel = np.random.normal(0, np.sqrt(self.temp), (self.num_particles, self.dim))
+        vel -= vel.mean(axis=0) # subtract mean velocity drift to prevent net momentum
+        return vel
 
     def _pairwise_diff_vector_matrix(self):
         """Generate a pairwise vector matrix with e_ij the vector between particle i and j.
@@ -243,7 +245,8 @@ class Simulation:
             self._step()
             
 
-# test = Simulation()
+
+test = Simulation(num_particles=256)
 
 
 
