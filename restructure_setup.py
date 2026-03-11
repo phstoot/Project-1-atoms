@@ -81,7 +81,6 @@ class Simulation:
             density : float     = 1, #FOR NOW # prevent negative values (with @property?)
             temp : float        = 1, #FOR NOW
             num_particles : int = 10, 
-            boxsize : float     = 10, 
             dim : int           = 2, 
             timestep_h : float  = 0.001, 
             units : str         = 'natural'
@@ -95,8 +94,6 @@ class Simulation:
             _description_
         num_particles : int, optional
             _description_, by default 108
-        boxsize : float, optional
-            _description_, by default 10
         dim : int, optional
             _description_, by default 2
         timestep_h : float, optional
@@ -108,11 +105,11 @@ class Simulation:
         self.density         = density
         self.temp            = temp
         self.num_particles   = num_particles
-        self.boxsize         = boxsize
         self.dim             = dim            # goes through @property setter
         self.timestep_h      = timestep_h
         self.units           = units          # goes through @property setter
         
+        self.boxsize         = (self.num_particles / self.density) ** (1/self.dim) # derived from density 
         self.positions       = self._init_positions()
         self.velocities      = self._init_velocities()
         self.forces          = self._net_forces()
@@ -123,10 +120,6 @@ class Simulation:
         self.e_kin_hist      = []
         self.e_pot_hist      = []
         self.e_tot_hist      = []
-
-
-
-        pass
 
     @property
     def dim(self):
