@@ -118,7 +118,8 @@ class Simulation:
         self.forces_hist     = []
         self.e_kin_hist      = []
         self.e_pot_hist      = []
-        self.e_tot_hist      = []
+        self.e_tot_hist      = [] # STILL UNUSED
+        self.status         = 'initialized'
 
     @property
     def dim(self):
@@ -144,9 +145,19 @@ class Simulation:
             raise ValueError(f"units must be 'natural' or 'SI', got {value!r}")
         self._units = value
 
+    @property
+    def status(self):
+        return self._status
+    
+    @status.setter
+    def status(self, value):
+        if not isinstance(value, str) or not value in ('initialized', 'equilibrated', 'completed'):
+            raise ValueError(f"Simulation status is unknown. Call reset()")
+        self._status = value
+
     def __repr__(self):
-        return (f"Simulation(density={self.density}, temp={self.temp}, "
-                f"num_particles={self.num_particles}, boxsize={self.boxsize}, "
+        return (f"Simulation(density={self.density:.2f}, temp={self.temp:.2f}, "
+                f"num_particles={self.num_particles}, boxsize={self.boxsize:.2f}, "
                 f"dim={self.dim}, timestep_h={self.timestep_h}, units={self.units})")
 
     def _init_positions(self):
@@ -229,26 +240,69 @@ class Simulation:
         self._update_velocities(new_forces) # uses both F(t) and F(t+h)
         self.forces = new_forces            # roll forward
     
-    def run(self, steps: int=1000, sample_interval: int | None = None):
-        """Run the simulation. implement sample interval for long simulations to keep history size manageable
+    def run(self, steps: int=1000, sample_interval: int | None = None, store: bool = True, verbose: bool = True):
+        """Run the simulation. implement sample interval for long simulations to keep history 
+        size manageable. Store = False is used in equilibrate, default here is True, to store 
+        simulation history for plotting and analysis.
         """
+
         if sample_interval is None:
             sample_interval = max(1, steps // 1000)
         
         for step in range(steps):
-            if step % sample_interval == 0:
+            if store and step % sample_interval == 0:
                 self.positions_hist.append(self.positions.copy())
                 self.velocities_hist.append(self.velocities.copy())
                 self.forces_hist.append(self.forces.copy())
                 self.e_kin_hist.append(self._kinetic_energy())
                 self.e_pot_hist.append(self._potential_energy())
             self._step()
-            
+        if verbose:
+            print(f'Run completed ({steps} steps)')
+        self._status = 'completed'
+        
+    def equilibrate(self, steps_between: int = 200, max_rescalings: int = 100):
+        """Equilibrate the system towards target temperature after initialisation.
+        
+        After initialisation of the Simulation instance, the first step is to 
+        guide the system towards equilibrium by calling this method.
+        """
+        temp_measured = 0.0                 # prevent unbound variable
+        stop = 0                            # prevent unbound variable
+        self.run(steps=steps_between, store=False, verbose=False)    # initial disordering of lattice
+        for _ in range(max_rescalings):
+            temp_measured = (2 * self._kinetic_energy()) / (self.dim * (self.num_particles - 1))
+            ratio = abs(temp_measured - self.temp) / self.temp
+            if ratio < 0.01:
+                stop = _ + 1
+                self._status = 'equilibrated'
+                print(f'Equilibrated at T = {temp_measured:.4f} (original input: T = {self.temp}), within {stop} rescalings')
+                break
+            lambda_ = np.sqrt(self.temp / temp_measured)
+            self.velocities *= lambda_
+            self.run(steps=steps_between, store=False, verbose=False)
+        else:
+            warnings.warn(f'Equilibration did not converge within {max_rescalings} rescalings.')
+        
+
+    def measure_temp(self):
+        return (2 * self._kinetic_energy()) / (self.dim * (self.num_particles - 1))
+    
+    def reset(self):
+        print('Resetting the simulation... System parameters like density, temperature, ... remain unchanged')
+        self.positions       = self._init_positions()
+        self.velocities      = self._init_velocities()
+        self.forces          = self._net_forces()
+        self.positions_hist  = []
+        self.velocities_hist = []
+        self.forces_hist     = []
+        self.e_kin_hist      = []
+        self.e_pot_hist      = []
+        self.e_tot_hist      = []
+        self._status         = 'initialized'
 
 
-test = Simulation(num_particles=256)
-
-
+# test = Simulation()
 
     # def run_live(self): # unfinished
     #     fig, (ax, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(6,8), height_ratios=[6,3])
