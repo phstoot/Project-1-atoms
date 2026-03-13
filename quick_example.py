@@ -19,7 +19,7 @@ from functions import lennard_jones_potential, interaction_force, min_vector
 # plt.show()
 
 if __name__ == '__main__':
-    test_simulation = Simulation(num_particles=20)
+    test_simulation = Simulation(num_particles=300, temp=6)
     print(f"Simulation instance created:")
     print(test_simulation)
     test_simulation.equilibrate()
@@ -51,6 +51,8 @@ if __name__ == '__main__':
     plt.title('energy evolution')
     plt.legend()
     plt.show()
+    
+    test_simulation.reset()
 
 # fig = plt.figure(figsize=(6,6))
 # ax = fig.add_subplot(111, projection='3d')

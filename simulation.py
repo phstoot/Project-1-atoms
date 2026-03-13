@@ -338,15 +338,22 @@ class Simulation:
         self.e_tot_hist      = []
         self._status         = 'initialized'
 
-    def _update_animation(self, alg = "verlet"):
+    def _update_animation(self, frame, alg: str= "verlet", store: bool = True): # I think "store" needs to be turned on always
+        if store:
+            self.positions_hist.append(self.positions.copy())
+            self.velocities_hist.append(self.velocities.copy())
+            self.forces_hist.append(self.forces.copy())
+            self.e_kin_hist.append(self._kinetic_energy())
+            self.e_pot_hist.append(self._potential_energy())
         self._step(alg=alg)
+        
         self.scat._offsets3d = (self.positions[:,0], self.positions[:,1], self.positions[:,2])
         
         start = max(0, self.timestep - self.steps_window)
         
-        self.plot_kin.set_xdata(np.arange(self.timestep))
+        self.plot_kin.set_xdata(np.arange(len(self.e_kin_hist)))
         self.plot_kin.set_ydata(np.array(self.e_kin_hist) / self.num_particles)
-        self.plot_pot.set_xdata(np.arange(self.timestep))
+        self.plot_pot.set_xdata(np.arange(len(self.e_pot_hist)))
         self.plot_pot.set_ydata(np.array(self.e_pot_hist) / self.num_particles)
         
         self.ax2.set_xlim(start, start + self.steps_window)
@@ -354,7 +361,7 @@ class Simulation:
         return self.scat, self.plot_kin, self.plot_pot
     
     
-    def run_life(self, steps: int=1000):
+    def run_live(self, steps: int=1000):
         if self._status == "initialized":
             raise RuntimeError("System has not been equilibrated. Call equilibrate() first.")
       
@@ -377,10 +384,14 @@ class Simulation:
         self.ax2 = fig.add_subplot(2, 1, 2)
         (self.plot_kin,) = self.ax2.plot([], [], label="E_kin")
         (self.plot_pot,) = self.ax2.plot([], [], label="E_pot")
+        
+        for i in range(self.timestep): # Probably not necessary, but in case run_live is called after some steps have already been taken
+            self.e_kin_hist.append(self._kinetic_energy())
+            self.e_pot_hist.append(self._potential_energy())
 
         # rolling window size
         self.ax2.set_xlim([max(0, self.timestep - steps), self.timestep])
-        # ax2.set_ylim([(0 - 0.1 * kin_0) / N, (kin_0 + 0.1 * kin_0) / N]) might need that, maybe not
+        self.ax2.set_ylim([(0 - 0.1 * self._kinetic_energy()) / self.num_particles, (self._kinetic_energy() + 0.1 * self._kinetic_energy()) / self.num_particles])
         self.ax2.legend(loc=7)
         
         self.ani = animation.FuncAnimation(
