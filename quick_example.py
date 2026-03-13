@@ -51,6 +51,8 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
 
+    print('exited')
+
 # fig = plt.figure(figsize=(6,6))
 # ax = fig.add_subplot(111, projection='3d')
 # ax.scatter(test.positions[:,0], test.positions[:,1], test.positions[:,2])
