@@ -19,12 +19,13 @@ from functions import lennard_jones_potential, interaction_force, min_vector
 # plt.show()
 
 if __name__ == '__main__':
-    test_simulation = Simulation()
+    test_simulation = Simulation(num_particles=20)
     print(f"Simulation instance created:")
     print(test_simulation)
     test_simulation.equilibrate()
     print(f"Status: {test_simulation.status}")
     print(f"Temp after equilibrate: {test_simulation.measure_temp():.4f}")
+    test_simulation.run_life()
     test_simulation.run()
     print(f"Status: {test_simulation.status}")
     print(f"Temp after run: {test_simulation.measure_temp():.4f}")

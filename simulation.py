@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import matplotlib.animation as animation
 from functions import interaction_force, lennard_jones_potential
 
 
@@ -120,6 +121,7 @@ class Simulation:
         self.e_kin_hist      = []
         self.e_pot_hist      = []
         self.e_tot_hist      = [] # STILL UNUSED
+        self.timestep        = 0
         self._status         = 'initialized'
 
     @property
@@ -214,7 +216,7 @@ class Simulation:
         F_matrix = F_mag[:, :, np.newaxis] * diff
         return F_matrix.sum(axis=1)
     
-    def _update_positions(self, alg= "verlet"):
+    def _update_positions(self, alg: str="verlet"):
         """Private method: use Verlet's algorithm to update positions, with box constraints applied. Part of general step in the simulation.
         """
         if alg == "verlet":
@@ -224,7 +226,7 @@ class Simulation:
             self.positions += self.timestep_h * self.velocities
             self.positions %= self.boxsize
 
-    def _update_velocities(self, new_forces, alg= "verlet"):
+    def _update_velocities(self, new_forces, alg: str="verlet"):
         """Private method: use Verlet's algorithm to update velocities. Part of general step in the simulation.
         """
         if alg == "verlet":
@@ -241,7 +243,7 @@ class Simulation:
         np.fill_diagonal(dist, np.inf) # mask diagonals to prevent division by zero
         return 0.5 * np.sum(lennard_jones_potential(dist))
 
-    def _step(self, alg="verlet"):
+    def _step(self, alg: str="verlet"):
         """Private method: Advance the system by one step with Verlet's Algorithm
         """
         if alg == "verlet":
@@ -254,6 +256,8 @@ class Simulation:
             self._update_positions(alg="euler")
             self._update_velocities(None, alg="euler")
             self.forces = self._net_forces()
+        
+        self.timestep += 1
     
     def _run(self, steps: int=1000):
         """Private method for running the simulation without storing history and without status checks, 
@@ -262,7 +266,7 @@ class Simulation:
         for step in range(steps):
             self._step()
 
-    def run(self, steps: int=1000, sample_interval: int | None = None, store: bool = True, verbose: bool = True, alg="verlet"):
+    def run(self, steps: int=1000, sample_interval: int | None = None, store: bool = True, verbose: bool = True, alg: str="verlet"):
         """Run the simulation. Implement sample interval for long simulations to keep history 
         size manageable. Store = False will not store any history of simulation data, only the final
         state can be accessed in attributes.
@@ -334,31 +338,62 @@ class Simulation:
         self.e_tot_hist      = []
         self._status         = 'initialized'
 
-    # def run_live(self): # unfinished
-    #     fig, (ax, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(6,8), height_ratios=[6,3])
-    #     fig.suptitle('Live animation window')
-    #     ax = fig.add_subplot(2,1,1, projection='3d')
-    #     ax.set_xlim(0, self.boxsize)
-    #     ax.set_ylim(0, self.boxsize)
-    #     ax.set_zlim(0, self.boxsize)
-    #     ax.set_aspect('equal')
-    #     ax.grid(False)
-    #     scat = ax.scatter(self.positions[:,0], self.positions[:,1], self.positions[:,2])
+    def _update_animation(self, alg = "verlet"):
+        self._step(alg=alg)
+        self.scat._offsets3d = (self.positions[:,0], self.positions[:,1], self.positions[:,2])
+        
+        start = max(0, self.timestep - self.steps_window)
+        
+        self.plot_kin.set_xdata(np.arange(self.timestep))
+        self.plot_kin.set_ydata(np.array(self.e_kin_hist) / self.num_particles)
+        self.plot_pot.set_xdata(np.arange(self.timestep))
+        self.plot_pot.set_ydata(np.array(self.e_pot_hist) / self.num_particles)
+        
+        self.ax2.set_xlim(start, start + self.steps_window)
+                           
+        return self.scat, self.plot_kin, self.plot_pot
+    
+    
+    def run_life(self, steps: int=1000):
+        if self._status == "initialized":
+            raise RuntimeError("System has not been equilibrated. Call equilibrate() first.")
+      
+        self.steps_window = steps
+        
+        fig = plt.figure(figsize=(6, 8))
+        fig.suptitle('Live animation window')
+        
+        #3D axis
+        self.ax = fig.add_subplot(2,1,1, projection='3d')
+        self.ax.set_xlim(0, self.boxsize)
+        self.ax.set_ylim(0, self.boxsize)
+        self.ax.set_zlim(0, self.boxsize) # Only for 3D, not for 2D
+        self.ax.set_aspect("equal")
+        self.ax.grid(False)
+        
+        self.scat = self.ax.scatter(self.positions[:,0], self.positions[:,1], self.positions[:,2])
+        
+        # Second Axes: energy evolution
+        self.ax2 = fig.add_subplot(2, 1, 2)
+        (self.plot_kin,) = self.ax2.plot([], [], label="E_kin")
+        (self.plot_pot,) = self.ax2.plot([], [], label="E_pot")
 
-    #     ax2 = fig.add_subplot(2,1,2)
-    #     (plot_kin,) = ax2.plot([], [], label="E_kin")
-    #     (plot_pot,) = ax2.plot([], [], label="E_pot")
-    #     # rolling window size
-    #     repeat_length = 500
-    #     ax2.set_xlim([0, repeat_length])
-    #     ax2.set_ylim([(0 - 0.1 * kin_0) / N, (kin_0 + 0.1 * kin_0) / N])
-    #     # ax2.set_yscale("symlog", linthresh=1e-2)
-    #     ax2.legend(loc=7)
+        # rolling window size
+        self.ax2.set_xlim([max(0, self.timestep - steps), self.timestep])
+        # ax2.set_ylim([(0 - 0.1 * kin_0) / N, (kin_0 + 0.1 * kin_0) / N]) might need that, maybe not
+        self.ax2.legend(loc=7)
+        
+        self.ani = animation.FuncAnimation(
+            fig,
+            self._update_animation,
+            frames=steps,
+            interval=20,
+            blit=False,
+            repeat=False,
+        )
 
-    #     def update(self, frame):
-    #         self._step() # advance system by one step
-    #         scat._offsets3d = 
-
+        plt.show()
+    
     
     # def equilibrate(self, density, temp):
     #     # see lecture 4 and coding guidelines
