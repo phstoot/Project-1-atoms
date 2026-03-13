@@ -119,7 +119,7 @@ class Simulation:
         self.e_kin_hist      = []
         self.e_pot_hist      = []
         self.e_tot_hist      = [] # STILL UNUSED
-        self.status         = 'initialized'
+        self._status         = 'initialized'
 
     @property
     def dim(self):
@@ -149,16 +149,17 @@ class Simulation:
     def status(self):
         return self._status
     
-    @status.setter
-    def status(self, value):
-        if not isinstance(value, str) or not value in ('initialized', 'equilibrated', 'completed'):
-            raise ValueError(f"Simulation status is unknown. Call reset()")
-        self._status = value
+    # @status.setter
+    # def status(self, value):
+    #     if not isinstance(value, str) or not value in ('initialized', 'equilibrated', 'completed'):
+    #         raise ValueError(f"Simulation status is unknown. Call reset()")
+    #     self._status = value
 
     def __repr__(self):
-        return (f"Simulation(density={self.density:.2f}, temp={self.temp:.2f}, "
+        return (f"Simulation(density={self.density:.2f}, input temp={self.temp:.2f}, "
                 f"num_particles={self.num_particles}, boxsize={self.boxsize:.2f}, "
-                f"dim={self.dim}, timestep_h={self.timestep_h}, units={self.units})")
+                f"dim={self.dim}, timestep_h={self.timestep_h}, units={self.units} "
+                f"| status: {self._status})")
 
     def _init_positions(self):
         """Private method to initialize positions based on the face-centered cubic (FCC) lattice, the assumed 
@@ -228,7 +229,7 @@ class Simulation:
         self.velocities += 0.5 * self.timestep_h * (self.forces + new_forces)
     
     def _kinetic_energy(self):
-        return 0.5 * np.sum(self.velocities**2) # sum squared components identical to summing squared vector norms
+        return 0.5 * np.sum( self.velocities**2 ) # sum squared components identical to summing squared vector norms
     
     def _potential_energy(self):
         diff = self._pairwise_diff_vector_matrix() # OPTIMIZE: the matrix calculation (O(N^2)) is done both here and in force method
@@ -244,12 +245,23 @@ class Simulation:
         self._update_velocities(new_forces) # uses both F(t) and F(t+h)
         self.forces = new_forces            # roll forward
     
-    def run(self, steps: int=1000, sample_interval: int | None = None, store: bool = True, verbose: bool = True):
-        """Run the simulation. implement sample interval for long simulations to keep history 
-        size manageable. Store = False is used in equilibrate, default here is True, to store 
-        simulation history for plotting and analysis.
+    def _run(self, steps: int=1000):
+        """Private method for running the simulation without storing history and without status checks, 
+        used in equilibrate().
         """
+        for step in range(steps):
+            self._step()
 
+    def run(self, steps: int=1000, sample_interval: int | None = None, store: bool = True, verbose: bool = True):
+        """Run the simulation. Implement sample interval for long simulations to keep history 
+        size manageable. Store = False will not store any history of simulation data, only the final
+        state can be accessed in attributes.
+        """
+        if self._status == "initialized":
+            raise RuntimeError("System has not been equilibrated. Call equilibrate() first.")
+        if self._status == "completed":
+            raise RuntimeError("run() already called. Call reset() to start fresh.")
+        
         if sample_interval is None:
             sample_interval = max(1, steps // 1000)
         
@@ -271,9 +283,14 @@ class Simulation:
         After initialisation of the Simulation instance, the first step is to 
         guide the system towards equilibrium by calling this method.
         """
+        if self._status == "equilibrated":
+            raise RuntimeError("System is already in equilibrium. Call run() to run simulation.")
+        if self._status == "completed":
+            raise RuntimeError("run() already called. Call reset() to start fresh.")
+        
         temp_measured = 0.0                 # prevent unbound variable
         stop = 0                            # prevent unbound variable
-        self.run(steps=steps_between, store=False, verbose=False)    # initial disordering of lattice
+        self._run(steps=steps_between)    # initial disordering of lattice
         for _ in range(max_rescalings):
             temp_measured = (2 * self._kinetic_energy()) / (self.dim * (self.num_particles - 1))
             ratio = abs(temp_measured - self.temp) / self.temp
@@ -284,16 +301,18 @@ class Simulation:
                 break
             lambda_ = np.sqrt(self.temp / temp_measured)
             self.velocities *= lambda_
-            self.run(steps=steps_between, store=False, verbose=False)
+            self._run(steps=steps_between)
         else:
             warnings.warn(f'Equilibration did not converge within {max_rescalings} rescalings.')
         
-
     def measure_temp(self):
         return (2 * self._kinetic_energy()) / (self.dim * (self.num_particles - 1))
     
+    def print_status(self):
+        print(f'Current status: {self._status}')
+
     def reset(self):
-        print('Resetting the simulation... System parameters like density, temperature, ... remain unchanged')
+        print('Resetting the simulation... Input parameters like density, temperature, ... remain unchanged')
         self.positions       = self._init_positions()
         self.velocities      = self._init_velocities()
         self.forces          = self._net_forces()
@@ -304,9 +323,6 @@ class Simulation:
         self.e_pot_hist      = []
         self.e_tot_hist      = []
         self._status         = 'initialized'
-
-
-# test = Simulation()
 
     # def run_live(self): # unfinished
     #     fig, (ax, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(6,8), height_ratios=[6,3])

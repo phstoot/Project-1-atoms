@@ -1,6 +1,22 @@
 from restructure_setup import Simulation
 import matplotlib.pyplot as plt
 import numpy as np
+from functions import lennard_jones_potential, interaction_force, min_vector
+
+radii_small = np.linspace(10**-3,1,1000, dtype=float)
+radii_large = np.linspace(1,5,1000, dtype=float)
+
+potentials_small = lennard_jones_potential(radii_small)
+potentials_large = lennard_jones_potential(radii_large)
+force_small = interaction_force(radii_small)
+force_large = interaction_force(radii_large)
+
+fig, (ax1, ax2) = plt.subplots(2,1)
+ax1.plot(radii_small, potentials_small)
+ax2.plot(radii_large, potentials_large)
+ax1.set_yscale("log")
+plt.show()
+
 
 test = Simulation()
 print(f"Status: {test.status}")
