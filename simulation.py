@@ -2,6 +2,7 @@ import math
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 from functions import interaction_force, lennard_jones_potential
 
 
@@ -223,10 +224,13 @@ class Simulation:
             self.positions += self.timestep_h * self.velocities
             self.positions %= self.boxsize
 
-    def _update_velocities(self, new_forces):
+    def _update_velocities(self, new_forces, alg= "verlet"):
         """Private method: use Verlet's algorithm to update velocities. Part of general step in the simulation.
         """
-        self.velocities += 0.5 * self.timestep_h * (self.forces + new_forces)
+        if alg == "verlet":
+            self.velocities += 0.5 * self.timestep_h * (self.forces + new_forces)
+        if alg == "euler":
+            self.velocities += self.forces * self.timestep_h
     
     def _kinetic_energy(self):
         return 0.5 * np.sum( self.velocities**2 ) # sum squared components identical to summing squared vector norms
@@ -237,13 +241,19 @@ class Simulation:
         np.fill_diagonal(dist, np.inf) # mask diagonals to prevent division by zero
         return 0.5 * np.sum(lennard_jones_potential(dist))
 
-    def _step(self):
+    def _step(self, alg="verlet"):
         """Private method: Advance the system by one step with Verlet's Algorithm
         """
-        self._update_positions()            # with self.forces from initialization or previous step
-        new_forces = self._net_forces()
-        self._update_velocities(new_forces) # uses both F(t) and F(t+h)
-        self.forces = new_forces            # roll forward
+        if alg == "verlet":
+            self._update_positions(alg="verlet")            # with self.forces from initialization or previous step
+            new_forces = self._net_forces()
+            self._update_velocities(new_forces, alg= "verlet") # uses both F(t) and F(t+h)
+            self.forces = new_forces            # roll forward
+        
+        if alg == "euler":
+            self._update_positions(alg="euler")
+            self._update_velocities(None, alg="euler")
+            self.forces = self._net_forces()
     
     def _run(self, steps: int=1000):
         """Private method for running the simulation without storing history and without status checks, 
@@ -252,7 +262,7 @@ class Simulation:
         for step in range(steps):
             self._step()
 
-    def run(self, steps: int=1000, sample_interval: int | None = None, store: bool = True, verbose: bool = True):
+    def run(self, steps: int=1000, sample_interval: int | None = None, store: bool = True, verbose: bool = True, alg="verlet"):
         """Run the simulation. Implement sample interval for long simulations to keep history 
         size manageable. Store = False will not store any history of simulation data, only the final
         state can be accessed in attributes.
@@ -265,14 +275,14 @@ class Simulation:
         if sample_interval is None:
             sample_interval = max(1, steps // 1000)
         
-        for step in range(steps):
+        for step in tqdm(range(steps)):
             if store and step % sample_interval == 0:
                 self.positions_hist.append(self.positions.copy())
                 self.velocities_hist.append(self.velocities.copy())
                 self.forces_hist.append(self.forces.copy())
                 self.e_kin_hist.append(self._kinetic_energy())
                 self.e_pot_hist.append(self._potential_energy())
-            self._step()
+            self._step(alg=alg)
         if verbose:
             print(f'Run completed ({steps} steps)')
         self._status = 'completed'
