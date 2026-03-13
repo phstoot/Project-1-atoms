@@ -212,11 +212,15 @@ class Simulation:
         F_matrix = F_mag[:, :, np.newaxis] * diff
         return F_matrix.sum(axis=1)
     
-    def _update_positions(self):
+    def _update_positions(self, alg= "verlet"):
         """Private method: use Verlet's algorithm to update positions, with box constraints applied. Part of general step in the simulation.
         """
-        self.positions += self.timestep_h * self.velocities + 0.5 * (self.timestep_h**2) * self.forces
-        self.positions %= self.boxsize
+        if alg == "verlet":
+            self.positions += self.timestep_h * self.velocities + 0.5 * (self.timestep_h**2) * self.forces
+            self.positions %= self.boxsize
+        if alg == "euler": # for testing only, not recommended for actual simulation
+            self.positions += self.timestep_h * self.velocities
+            self.positions %= self.boxsize
 
     def _update_velocities(self, new_forces):
         """Private method: use Verlet's algorithm to update velocities. Part of general step in the simulation.
