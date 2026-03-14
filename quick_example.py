@@ -25,7 +25,7 @@ if __name__ == '__main__':
     test_simulation.equilibrate()
     print(f"Status: {test_simulation.status}")
     print(f"Temp after equilibrate: {test_simulation.measure_temp():.4f}")
-    test_simulation.run_life()
+    test_simulation.run_live()
     test_simulation.run()
     print(f"Status: {test_simulation.status}")
     print(f"Temp after run: {test_simulation.measure_temp():.4f}")

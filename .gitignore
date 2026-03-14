@@ -2,3 +2,8 @@ energies_euler.png
 energies_verlet.png
 3d_animation.m4v
 3d_animation.mov
+.vscode/settings.json
+__pycache__/restructure_setup.cpython-312.pyc
+.gitignore
+__pycache__/simulation.cpython-312.pyc
+__pycache__/functions.cpython-312.pyc

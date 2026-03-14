@@ -172,10 +172,10 @@ class Simulation:
                           [0.5, 0.5, 0. ],
                           [0.5, 0,   0.5],
                           [0,   0.5, 0.5]])
-        n = int(round((self.num_particles / 4) ** (1/3)))
+        n = int(np.ceil((self.num_particles / 4) ** (1/3))) # round up, not down
         if abs(4 * n**3 - self.num_particles) > 0:
             warnings.warn(f"num_particles={self.num_particles} is not a perfect FCC number. "
-                          f"Nearest valid values are {4*(n)**3} or {4*(n+1)**3}.")
+                          f"Nearest valid values are {4*(n-1)**3} or {4*(n)**3}.")
         cell_size = self.boxsize / n
 
         positions = []

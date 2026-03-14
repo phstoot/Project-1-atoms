@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 from random import randint
 import matplotlib.animation as animation
 from functions import (
-    Lennard_Jones_Potential,
+    lennard_jones_potential,
     min_vector,
-    Interaction_force,
+    interaction_force,
     Kinetic_Energies,
 )
 
@@ -77,8 +77,8 @@ def verlet_integration_3D(pos, vel):
             if j != i:
                 r_vector = min_vector(main_particle, interacting_particle, L=L, dim=dim)
                 r = np.linalg.norm(r_vector)
-                F_mag = -Interaction_force(r)
-                U = Lennard_Jones_Potential(r)
+                F_mag = -interaction_force(r)
+                U = lennard_jones_potential(r)
 
                 # Force vector, note that we already normalized the vector min_vec in the Force function definition
                 F_t[i] += F_mag * r_vector
@@ -109,7 +109,7 @@ def verlet_integration_3D(pos, vel):
             if i != j:
                 r_vector = min_vector(main_particle, interacting_particle, L=L, dim=dim)
                 r = np.linalg.norm(r_vector)
-                F_mag = -Interaction_force(r)
+                F_mag = -interaction_force(r)
                 # Force vector, note that we already normalized the vector min_vec in the Force function definition
                 F_t_plus_h[i] += F_mag * r_vector
 
@@ -143,8 +143,8 @@ ax2 = fig.add_subplot(2, 1, 2)
 (plot_pot,) = ax2.plot([], [], label="E_pot")
 # rolling window size
 repeat_length = 500
-ax2.set_xlim([0, repeat_length])
-ax2.set_ylim([(0 - 0.1 * kin_0) / N, (kin_0 + 0.1 * kin_0) / N])
+ax2.set_xlim(0, repeat_length)
+ax2.set_ylim(bottom=((0 - 0.1 * kin_0) / N), top=((kin_0 + 0.1 * kin_0) / N))
 # ax2.set_yscale("symlog", linthresh=1e-2)
 ax2.legend(loc=7)
 
