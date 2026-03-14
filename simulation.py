@@ -234,10 +234,10 @@ class Simulation:
         if alg == "euler":
             self.velocities += self.forces * self.timestep_h
     
-    def _kinetic_energy(self):
+    def _kinetic_energy(self) -> float:
         return 0.5 * np.sum( self.velocities**2 ) # sum squared components identical to summing squared vector norms
     
-    def _potential_energy(self):
+    def _potential_energy(self) -> float:
         diff = self._pairwise_diff_vector_matrix() # OPTIMIZE: the matrix calculation (O(N^2)) is done both here and in force method
         dist = np.linalg.norm(diff, axis=-1)
         np.fill_diagonal(dist, np.inf) # mask diagonals to prevent division by zero
@@ -336,9 +336,13 @@ class Simulation:
         self.e_kin_hist      = []
         self.e_pot_hist      = []
         self.e_tot_hist      = []
+        self.timestep        = 0
         self._status         = 'initialized'
 
-    def _update_animation(self, frame, alg: str= "verlet", store: bool = True): # I think "store" needs to be turned on always
+    def _update_animation(self, frame, alg: str= "verlet", store: bool = True): # I think "store" needs to be turned on always - for the animation?
+        """This private method is essentially a copy of the run method with storing history,
+        with some additional code for the live animation. 
+        """
         if store:
             self.positions_hist.append(self.positions.copy())
             self.velocities_hist.append(self.velocities.copy())
@@ -364,7 +368,9 @@ class Simulation:
     def run_live(self, steps: int=1000):
         if self._status == "initialized":
             raise RuntimeError("System has not been equilibrated. Call equilibrate() first.")
-      
+        if self._status == "completed":
+            raise RuntimeError("run() or run_live() already called. Call reset() to start fresh.")
+        
         self.steps_window = steps
         
         fig = plt.figure(figsize=(6, 8))
@@ -382,16 +388,17 @@ class Simulation:
         
         # Second Axes: energy evolution
         self.ax2 = fig.add_subplot(2, 1, 2)
-        (self.plot_kin,) = self.ax2.plot([], [], label="E_kin")
-        (self.plot_pot,) = self.ax2.plot([], [], label="E_pot")
+        (self.plot_kin,) = self.ax2.plot([], [], label=r"E$_{kin}$")
+        (self.plot_pot,) = self.ax2.plot([], [], label=r"E$_{pot}$")
         
-        for i in range(self.timestep): # Probably not necessary, but in case run_live is called after some steps have already been taken
-            self.e_kin_hist.append(self._kinetic_energy())
-            self.e_pot_hist.append(self._potential_energy())
+        # for i in range(self.timestep): # Probably not necessary, but in case run_live is called after some steps have already been taken
+        #     self.e_kin_hist.append(self._kinetic_energy())
+        #     self.e_pot_hist.append(self._potential_energy())
 
         # rolling window size
-        self.ax2.set_xlim([max(0, self.timestep - steps), self.timestep])
-        self.ax2.set_ylim([(0 - 0.1 * self._kinetic_energy()) / self.num_particles, (self._kinetic_energy() + 0.1 * self._kinetic_energy()) / self.num_particles])
+        mid = ((self._potential_energy() + self._kinetic_energy()) / 2) / self.num_particles
+        self.ax2.set_xlim(left=(max(0, self.timestep - steps)), right=self.timestep)
+        self.ax2.set_ylim(bottom=(mid - 2.2*mid), top=(mid + 2.2*mid))
         self.ax2.legend(loc=7)
         
         self.ani = animation.FuncAnimation(
@@ -404,6 +411,7 @@ class Simulation:
         )
 
         plt.show()
+        self._status = 'completed'
     
     
     # def equilibrate(self, density, temp):
