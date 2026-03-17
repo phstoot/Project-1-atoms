@@ -194,14 +194,24 @@ class Simulation:
         vel = np.random.normal(0, np.sqrt(self.temp), (self.num_particles, self.dim))
         vel -= vel.mean(axis=0) # subtract mean velocity drift to prevent net momentum
         return vel
-
-    def _pairwise_diff_vector_matrix(self):
+    
+    def _pairwise_distances(self):
         """Generate a pairwise vector matrix with e_ij the vector between particle i and j.
         The minimal image convention is implemented.
+
+        Returns
+        -------
+        diff
+            Diagonal numpy matrix containing as elements the vector between each particle pair.
+        dist
+            Diagonal numpy matrix containing as elements the distance between each particle pair (norm of vector).
+            Diagonal elements np.inf to prevent division by zero.
         """
         diff = self.positions[np.newaxis, :, :] - self.positions[:, np.newaxis, :] # shape (N, N, dim)
         diff = (diff + 0.5*self.boxsize) % self.boxsize - 0.5*self.boxsize # minimal image convention
-        return diff
+        dist = np.linalg.norm(diff, axis=-1)
+        np.fill_diagonal(dist, np.inf) # mask diagonals to prevent division by zero
+        return diff, dist
     
     def _net_forces(self):
         """The pairwise vector matrix is used to find the interaction 
@@ -209,9 +219,7 @@ class Simulation:
         over an axis to find the net force on each particle. Returns final array to 
         enable storage of multiple force arrays in one simulation step.
         """
-        diff = self._pairwise_diff_vector_matrix()
-        dist = np.linalg.norm(diff, axis=-1)
-        np.fill_diagonal(dist, np.inf) # mask diagonals to prevent division by zero
+        diff, dist = self._pairwise_distances()
         F_mag = -interaction_force(dist)
         F_matrix = F_mag[:, :, np.newaxis] * diff
         return F_matrix.sum(axis=1)
@@ -238,9 +246,7 @@ class Simulation:
         return 0.5 * np.sum( self.velocities**2 ) # sum squared components identical to summing squared vector norms
     
     def _potential_energy(self) -> float:
-        diff = self._pairwise_diff_vector_matrix() # OPTIMIZE: the matrix calculation (O(N^2)) is done both here and in force method
-        dist = np.linalg.norm(diff, axis=-1)
-        np.fill_diagonal(dist, np.inf) # mask diagonals to prevent division by zero
+        diff, dist = self._pairwise_distances() # OPTIMIZE: the matrix calculation (O(N^2)) is done both here and in force method
         return 0.5 * np.sum(lennard_jones_potential(dist))
 
     def _step(self, alg: str="verlet"):
@@ -291,7 +297,7 @@ class Simulation:
             print(f'Run completed ({steps} steps)')
         self._status = 'completed'
         
-    def equilibrate(self, steps_between: int = 200, max_rescalings: int = 100):
+    def equilibrate(self, steps_between: int = 200, max_rescalings: int = 100, verbose: bool = True):
         """Equilibrate the system towards target temperature after initialisation.
         
         After initialisation of the Simulation instance, the first step is to 
@@ -311,7 +317,8 @@ class Simulation:
             if ratio < 0.01:
                 stop = _ + 1
                 self._status = 'equilibrated'
-                print(f'Equilibrated at T = {temp_measured:.4f} (original input: T = {self.temp}), within {stop} rescalings')
+                if verbose:
+                    print(f'Equilibrated at T = {temp_measured:.4f} (original input: T = {self.temp}), within {stop} rescalings')
                 break
             lambda_ = np.sqrt(self.temp / temp_measured)
             self.velocities *= lambda_
@@ -325,8 +332,9 @@ class Simulation:
     def print_status(self):
         print(f'Current status: {self._status}')
 
-    def reset(self):
-        print('Resetting the simulation... Input parameters like density, temperature, ... remain unchanged')
+    def reset(self, verbose:bool = True):
+        if verbose:
+            print('Resetting the simulation... Input parameters like density, temperature, ... remain unchanged')
         self.positions       = self._init_positions()
         self.velocities      = self._init_velocities()
         self.forces          = self._net_forces()
@@ -351,7 +359,7 @@ class Simulation:
             self.e_pot_hist.append(self._potential_energy())
         self._step(alg=alg)
         
-        self.scat._offsets3d = (self.positions[:,0], self.positions[:,1], self.positions[:,2])
+        self.scat._offsets3d = (self.positions[:,0], self.positions[:,1], self.positions[:,2]) # type: ignore
         
         start = max(0, self.timestep - self.steps_window)
         
@@ -364,8 +372,8 @@ class Simulation:
                            
         return self.scat, self.plot_kin, self.plot_pot
     
-    
     def run_live(self, steps: int=1000):
+        plt.close('all') # prevent glitch by persisted matplotlib objects
         if self._status == "initialized":
             raise RuntimeError("System has not been equilibrated. Call equilibrate() first.")
         if self._status == "completed":
@@ -384,7 +392,7 @@ class Simulation:
         self.ax.set_aspect("equal")
         self.ax.grid(False)
         
-        self.scat = self.ax.scatter(self.positions[:,0], self.positions[:,1], self.positions[:,2])
+        self.scat = self.ax.scatter(self.positions[:,0], self.positions[:,1], self.positions[:,2]) # type: ignore
         
         # Second Axes: energy evolution
         self.ax2 = fig.add_subplot(2, 1, 2)
@@ -397,8 +405,9 @@ class Simulation:
 
         # rolling window size
         mid = ((self._potential_energy() + self._kinetic_energy()) / 2) / self.num_particles
+        amp = (self._kinetic_energy() / self.num_particles) - mid
         self.ax2.set_xlim(left=(max(0, self.timestep - steps)), right=self.timestep)
-        self.ax2.set_ylim(bottom=(mid - 2.2*mid), top=(mid + 2.2*mid))
+        self.ax2.set_ylim(bottom=(mid - 1.4*amp), top=(mid + 1.4*amp))
         self.ax2.legend(loc=7)
         
         self.ani = animation.FuncAnimation(
@@ -413,19 +422,37 @@ class Simulation:
         plt.show()
         self._status = 'completed'
     
+    def run_ensemble(self, n_resets: int = 20, steps: int = 2000, sample_interval: int = 200, n_bins: int = 400, verbose:bool = True):
+        print('Starting ensemble...')
+        if self._status == "completed":
+            warnings.warn('Earlier runs will be overwritten.')
+
+        n_r_accumulator = np.zeros(n_bins)
+        delta_r = self.boxsize / (2*n_bins)
+        self.bins = np.arange(0, self.boxsize/2 + delta_r, delta_r)
+
+        for _ in tqdm(range(n_resets)):
+            self.reset(verbose=verbose)
+            self.equilibrate(verbose=verbose)
+            for i in range(steps//sample_interval):
+                self._run(steps=sample_interval)
+                n_r_accumulator += self._sample_n_r()
+
+        n_samples = n_resets * (steps//sample_interval)
+        self.n_r = n_r_accumulator / n_samples
+        self._status = 'completed'
+
+    def _sample_n_r(self):
+        diff, dist = self._pairwise_distances()
+        upper = dist[np.triu_indices(self.num_particles, k=1)]
+        counts, _ = np.histogram(upper, bins=self.bins)
+        return counts
     
-    # def equilibrate(self, density, temp):
-    #     # see lecture 4 and coding guidelines
-    #     pass
+    def plot_pair_corr_function(self):
+        pass
 
-    # def simulate(self, algorithm, time, *, live_animation=True, store_arrays=True):
-    #     # see lecture 4
-    #     # time how long to simulate?
-    #     # algorithm: euler or verlet
+    
 
-    #     #i'd say: based on chosen algorithm, import correct function
-    #     # from other file
-    #     pass
 
     # def quickshow(self):
     #     # just an idea
