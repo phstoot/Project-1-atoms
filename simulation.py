@@ -88,21 +88,6 @@ class Simulation:
             units : str         = 'natural'
 
         ):
-        """_summary_
-
-        Parameters
-        ----------
-        density : float
-            _description_
-        num_particles : int, optional
-            _description_, by default 108
-        dim : int, optional
-            _description_, by default 2
-        timestep_h : float, optional
-            _description_, by default 0.001
-        units : str, optional
-            _description_, by default 'natural'
-        """
         self.density         = density
         self.temp            = temp
         self.num_particles   = num_particles
@@ -273,9 +258,32 @@ class Simulation:
             self._step()
 
     def run(self, steps: int=1000, sample_interval: int | None = None, store: bool = True, verbose: bool = True, alg: str="verlet"):
-        """Run the simulation. Implement sample interval for long simulations to keep history 
+        """Summary
+        ---------
+        Run the simulation once and store system state (positions, velocities, energies) at each step in history arrays. 
+        Implement sample interval for long simulations to keep history 
         size manageable. Store = False will not store any history of simulation data, only the final
-        state can be accessed in attributes.
+        state can be accessed in attributes. The method has the option to choose Euler's algorithm 
+        instead of the default Verlet's algorithm. Be aware, Euler's algorithm will not conserve total
+        energy.
+
+        Parameters
+        ----------
+        steps : int, optional
+            How many steps the simulation is run for, by default 1000
+        sample_interval : int | None, optional
+            The interval at which system state is stored, use to minimize history size. By default None
+        store : bool, optional
+            If False, no history is stored. By default True
+        verbose : bool, optional
+            If False, printed messaged turned off. By default True
+        alg : str, optional
+            'euler' or 'verlet', by default 'verlet'
+
+        Raises
+        ------
+        RuntimeError
+            Status check
         """
         if self._status == "initialized":
             raise RuntimeError("System has not been equilibrated. Call equilibrate() first.")
@@ -299,9 +307,20 @@ class Simulation:
         
     def equilibrate(self, steps_between: int = 200, max_rescalings: int = 100, verbose: bool = True):
         """Equilibrate the system towards target temperature after initialisation.
-        
-        After initialisation of the Simulation instance, the first step is to 
-        guide the system towards equilibrium by calling this method.
+
+        Parameters
+        ----------
+        steps_between : int, optional
+            How many steps are run between each rescaling, by default 200
+        max_rescalings : int, optional
+            The maximum amount of rescalings tried by the program, by default 100
+        verbose : bool, optional
+            If False, printed messages turned off, by default True
+
+        Raises
+        ------
+        RuntimeError
+            Status check
         """
         if self._status == "equilibrated":
             raise RuntimeError("System is already in equilibrium. Call run() to run simulation.")
@@ -333,6 +352,17 @@ class Simulation:
         print(f'Current status: {self._status}')
 
     def reset(self, verbose:bool = True):
+        """Reset the simulation object. Input parameters like density, temperature, number of particles,
+        dimension, etc. remain unchanged. All history is discarded, positions are 
+        initialized in FCC lattice. Velocities are randomly drawn from normal distribution centered at zero
+        with temperature as variance.
+
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            If False, printed messages turned off. By default True
+        """
         if verbose:
             print('Resetting the simulation... Input parameters like density, temperature, ... remain unchanged')
         self.positions       = self._init_positions()
@@ -423,6 +453,29 @@ class Simulation:
         self._status = 'completed'
     
     def run_ensemble(self, n_resets: int = 20, steps: int = 2000, sample_interval: int = 200, n_bins: int = 400, verbose:bool = True):
+        """Summary
+        ----------
+        Run an ensemble of simulations in series to sample pairwise distances (n(r)) and pressure at 
+        many configurations for many different initial conditions. The method runs
+        'n_resets' independent simulations of 'steps' steps, sampling every 'sample_interval' steps. 
+        The sampled arrays are then averaged to use for the normalized pair correlation function.
+
+        Due to minimal image convention, only the range r=[0, 0.5\*boxsize] is considered, so
+        delta r = boxsize / (2*n_bins).
+
+        Parameters
+        ----------
+        n_resets : int, optional
+            The amount of independent simulations run, by default 20
+        steps : int, optional
+            The amount of steps each independent simulation is run, by default 2000
+        sample_interval : int, optional
+            The interval in steps at which n(r) and pressure is sampled in each simulation, by default 200
+        n_bins : int, optional
+            The amount of bins to use for binning n(r), the pairwise distances, by default 400. 
+        verbose : bool, optional
+            If False, printed messages during simulation are turned off. By default True
+        """
         print('Starting ensemble...')
         if self._status == "completed":
             warnings.warn('Earlier runs will be overwritten.')
@@ -441,15 +494,50 @@ class Simulation:
         n_samples = n_resets * (steps//sample_interval)
         self.n_r = n_r_accumulator / n_samples
         self._status = 'completed'
+        self._ensemble_stat = True
 
     def _sample_n_r(self):
+        """private method used in run_ensemble(). Returns binned pairwise distances
+        (n(r)) at latest state of simulation. 
+
+        Returns
+        -------
+        counts
+            Array of binned pairwise distances, with n_bins taken from run_ensemble()
+        """
         diff, dist = self._pairwise_distances()
         upper = dist[np.triu_indices(self.num_particles, k=1)]
         counts, _ = np.histogram(upper, bins=self.bins)
         return counts
     
-    def plot_pair_corr_function(self):
-        pass
+    def pair_corr_function(self):
+        """Return the normalized pair correlation function g(r) based on an averaged 
+        histogrammed n(r) sampled in an ensemble of simulations. Can only be called after run_ensemble().
+        Takes as x-axis r=[0, boxsize/2], with as step
+        delta r taken from n_bins in run_ensemble method.
+
+        Returns
+        -------
+        radii
+            Array with corresponding radii to use as x axis when plotting g(r)
+        g(r)
+            Array containing the pair correlation function as function of radius
+
+        Raises
+        ------
+        RuntimeError
+            status check
+        """
+        if not self._ensemble_stat:
+            raise RuntimeError("To measure the pair correlation function, first run_ensemble must be run.")
+        # to do here: make radii array and check bins and stuff
+        n_bins = (len(self.bins)-1)
+        radii = np.linspace(0.001, self.boxsize/2, n_bins)
+        volume = self.boxsize**self.dim
+
+        g = ((2*volume) / (self.num_particles * (self.num_particles - 1))) * \
+        (self.n_r / (4 * np.pi * radii**2 * (self.boxsize/ (2*n_bins))))
+        return radii, g
 
     
 
