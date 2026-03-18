@@ -1,3 +1,14 @@
+"""
+Script to demonstrate numba and cutoff_r optimization for large N simulations.
+
+Usage:
+    python demo_bonus.py
+
+Output:
+    - plot of FCC grid of 4000 particles
+    - resulting energy evolution plot of simulation
+"""
+
 from simulation import Simulation
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,10 +18,10 @@ from utils import lennard_jones_potential, interaction_force, min_vector, spacer
 
 if __name__ == '__main__':
     section("overview")
-    print("This script demonstrates the optimization of the module, running a simulation of 5000 particles.")
+    print("This script demonstrates the optimization of the module, running a simulation of 4000 particles (which happens to be a valid FCC multiple).")
     spacer()
     sleep(1)
-    test_simulation = Simulation(num_particles=5000, temp=0.5, density=1.2, optimized=True, numba=True) # for testing purposes, we can set optimized and numba to False to check if the results are the same as with the original code. We can also set num_particles to a small number to check if the forces and energies are calculated correctly. We can also set temp to a high value to check if the system equilibrates correctly. We can also set density to a low value to check if the system behaves like an ideal gas. We can also set density to a high value to check if the system behaves like a solid. We can also set temp to a low value to check if the system behaves like a solid. We can also set temp to a high value and density to a low value to check if the system behaves like a gas. We can also set temp to a low value and density to a high value to check if the system behaves like a solid. We can also set temp to a high value and density to a high value to check if the system behaves like a liquid. We can also set temp to a low value and density to a low value to check if the system behaves like a gas.
+    test_simulation = Simulation(num_particles=4000, temp=0.5, density=1.2, optimized=True, numba=True) # for testing purposes, we can set optimized and numba to False to check if the results are the same as with the original code. We can also set num_particles to a small number to check if the forces and energies are calculated correctly. We can also set temp to a high value to check if the system equilibrates correctly. We can also set density to a low value to check if the system behaves like an ideal gas. We can also set density to a high value to check if the system behaves like a solid. We can also set temp to a low value to check if the system behaves like a solid. We can also set temp to a high value and density to a low value to check if the system behaves like a gas. We can also set temp to a low value and density to a high value to check if the system behaves like a solid. We can also set temp to a high value and density to a high value to check if the system behaves like a liquid. We can also set temp to a low value and density to a low value to check if the system behaves like a gas.
     print(f"Simulation instance created:")
     print(test_simulation)
     spacer()

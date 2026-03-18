@@ -3,7 +3,7 @@ Script to reproduce all displayed results in the final report. Can take 10-20 mi
 For a quick run, comment out the large run_ensemble() methods, and replace by smaller run_ensemble() methods below.
 
 Usage:
-    python results_demo.py
+    python demo_results.py
 
 Output:
     - energy plots for two-particle collisions with euler and verlet algorithm

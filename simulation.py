@@ -2,7 +2,7 @@
 Molecular dynamics simulation of Lennard-Jones particles.
 
 Classes:
-    Simulation: NVE molecular dynamics simulation of argon atoms
+    Simulation: molecular dynamics simulation of argon atoms
                 interacting via the Lennard-Jones potential.
 
 Dependencies:
@@ -66,38 +66,7 @@ class PositiveFloat:
 
 
 class Simulation:
-    """A simulation class used to build and run an Argon molecular dynamics simulation.
-
-    Parameters
-    ----------
-    density : float
-        _description_
-    num_particles : int, optional
-        _description_, by default 108
-    boxsize : float, optional
-        _description_, by default 10
-    dim : int, optional
-        _description_, by default 2
-    timestep_h : float, optional
-        _description_, by default 0.001
-    units : str, optional
-        _description_, by default 'natural'
-    optimized : bool, optional
-        _description_, by default False
-    cutoff: float, optional
-        _description_, by default 2.71
-
-    Returns
-    -------
-    _type_
-        _description_
-
-    Raises
-    ------
-    ValueError
-        _description_
-    ValueError
-        _description_
+    """Molecular dynamics simulation of argon atoms interacting via the Lennard-Jones potential.
     """
 
     # Descriptors for repeated validation rules
@@ -399,11 +368,15 @@ class Simulation:
             self.velocities += self.forces * self.timestep_h
 
     def _kinetic_energy(self) -> float:
+        """Total kinetic energy of system, using all velocities.
+        """
         return 0.5 * np.sum(
             self.velocities**2
         )  # sum squared components identical to summing squared vector norms
 
     def _potential_energy(self) -> float:
+        """Total potential energy of system
+        """
         diff, dist = (
             self._pairwise_distances()
         )  # OPTIMIZE: the matrix calculation (O(N^2)) is done both here and in force method
@@ -567,9 +540,18 @@ class Simulation:
             )
 
     def measure_temp(self):
+        """Measure temperature at current state of the simulation. After equilibration, this value should lie close to input temperature.
+
+        Returns
+        -------
+        float
+            System temperature in natural units
+        """
         return (2 * self._kinetic_energy()) / (self.dim * (self.num_particles - 1))
 
     def print_status(self):
+        """Print the current status of the system to the console. Possible statuses: 'initialized', 'equilibrated', 'completed'.
+        """
         print(f"Current status: {self._status}")
 
     def reset(self, verbose: bool = True):
@@ -632,7 +614,7 @@ class Simulation:
         return self.scat, self.plot_kin, self.plot_pot
 
     def run_live(self, steps: int = 1000):
-        """Runs the simulation continouusly. Plots the energy evolution per particle in real-time."""
+        """Runs the simulation continouusly. Plots the energy evolution per particle in real-time, using a Matplotlib animation window."""
         plt.close("all")  # prevent glitch by persisted matplotlib objects
         if self._status == "initialized":
             raise RuntimeError(
@@ -843,14 +825,3 @@ class Simulation:
             self.density / (6 * self.num_particles)
         ) * np.array(self.virials)
         return pressure
-
-    # def quickshow(self):
-    #     # just an idea
-    #     pass
-
-    # def deconstruct(self):
-    #     pass
-
-    # def save_animation(self):
-    #     # and specify in what form
-    #     pass
