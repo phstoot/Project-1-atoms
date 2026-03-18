@@ -91,6 +91,8 @@ if __name__ == '__main__':
               'ytick.minor.size':    3, })
 
     section('collision: Euler vs Verlet')
+    print("In this section a two-particle collision is simulated using both Euler's and Verlet's algorithm for comparison.")
+    spacer()
     collision_demo('euler')
     collision_demo('verlet')
 

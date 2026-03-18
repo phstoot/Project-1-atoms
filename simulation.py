@@ -712,8 +712,8 @@ class Simulation:
             The virial term as in Verlet (1967)
         """
         diff, dist = self._pairwise_distances()
-        # with np.errstate(invalid='ignore', divide='ignore'):
-        dUdr_term = -interaction_force(dist) * dist**2
+        with np.errstate(invalid='ignore', divide='ignore'):
+            dUdr_term = -interaction_force(dist) * dist**2
         virial = np.sum(np.triu(dUdr_term, k=1))
         return virial
     
