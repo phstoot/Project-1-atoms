@@ -4,54 +4,67 @@ import numpy as np
 from tqdm import tqdm
 from functions import lennard_jones_potential, interaction_force, min_vector
 
-# To do: run set of simulations, to sample both different configurations at different times and with different initial conditions
-# 1) Equilibrate
-# 2) Run:
-# 3) Sample different configurations at several t, only store the important variables (and store those we need for later externally)
-# 4) Reset simulation
-# Note: This is averaging is done
-# for each independant bin [r,r+ ∆r]
+import matplotlib as mpl
+from cycler import cycler
 
-test = Simulation(density=0.3, temp=5) 
 
-# set_counts = []
 
-# for i in tqdm(range(20)):
-#     test.equilibrate()
-#     for i in range(10):
-#         test._run(steps=200)
-#         diff_mtx = test._pairwise_diff_vector_matrix()
-#         dist_mtx = np.linalg.norm(diff_mtx, axis=-1)
-#         triu_idx = np.triu_indices_from(dist_mtx, k=1)
-#         distances = dist_mtx[triu_idx]
-#         counts, bins, hist = plt.hist(distances, bins=400, range=(0,test.boxsize))
-#         set_counts.append(counts)
-#     test.reset()
 
-# we have a total list of 10 arrays containing the binned counts of pairwise distances. 
-# we can average these arrays binwise by taking sum and dividing by 10. 
-# avg_counts = np.mean(np.array(set_counts), axis=0)
 
-# def pair_correlation_func(n_r, r):
-#     volume = test.boxsize**test.dim
-#     g = ((2*volume) / (test.num_particles * (test.num_particles - 1))) * \
-#         (n_r / (4 * np.pi * r**2 * (test.boxsize/400)))
-#     return g
+if __name__ == '__main__':
+    mpl.rcParams.update({'axes.labelsize': 13,
+              'axes.prop_cycle': cycler('color', 'brcmyk'),
+              'axes.titleweight': 'heavy',
+              'axes.titlesize': 15,
+              'figure.figsize': (6, 6),
+              'font.family': ['serif'],
+              'legend.fancybox':  False,
+              'legend.edgecolor':     'black',
+              'mathtext.fontset': 'dejavuserif',
+              'patch.force_edgecolor': True,
+              'xtick.direction': 'in',
+              'xtick.top': True,
+              'xtick.minor.visible': True,
+              'xtick.major.size':    10, 
+              'xtick.minor.size':    3, 
+              'ytick.direction': 'in',
+              'ytick.right': True,
+              'ytick.minor.visible': True,
+              'ytick.major.size':    10, 
+              'ytick.minor.size':    3, })
 
-# plt.show() # all the trash histograms out of the way
 
-# fig, (ax1, ax2) = plt.subplots(2,1)
+    gas = Simulation(density=0.3, temp=3) 
+    liquid = Simulation(density=0.8, temp=1)
+    solid = Simulation(density=1.2, temp=0.5)
+    print('Three simulation instances were initialized corresponding to Argon gas, liquid and solid.')
+    gas.run_ensemble(n_resets=50, steps=1000, sample_interval=50, verbose=False)
+    liquid.run_ensemble(n_resets=40, steps=1000, sample_interval=100, verbose=False)
+    solid.run_ensemble(n_resets=15, steps=2000, sample_interval=200, verbose=False)
 
-# ax1.set_title('pairwise distances')
+    gas_r, gas_pcf = gas.measure_pair_corr_function()
+    gas_pressure = gas.measure_pressure()
 
-test.run_ensemble()
-radii, pcf = test.pair_corr_function()
-test.reset()
+    liquid_r, liquid_pcf = liquid.measure_pair_corr_function()
+    liquid_pressure = liquid.measure_pressure()
 
-# radii = np.linspace(0.001, test.boxsize / 2, 400)
-# pcf = pair_correlation_func(avg_counts, radii)
+    solid_r, solid_pcf = solid.measure_pair_corr_function()
+    solid_pressure = solid.measure_pressure()
 
-plt.plot(radii, pcf)
-plt.title('pair correlation function')
-plt.tight_layout()
-plt.show()
+    fig = plt.figure(figsize=(5,4))
+    plt.plot(gas_r, gas_pcf, label='gas')
+    plt.plot(liquid_r, liquid_pcf, label='liquid')
+    plt.plot(solid_r, solid_pcf, label='solid')
+    plt.legend()
+    plt.xlabel(r'r / $\sigma$')
+    plt.ylabel('g(r)')
+    plt.xlim(0,2.2)
+    plt.axhline(1, linewidth=0.5, color='grey', linestyle='--')
+    plt.gca().xaxis.set_major_locator(plt.MultipleLocator(0.5))
+    plt.gca().xaxis.set_minor_locator(plt.MultipleLocator(0.1))
+    plt.show()
+
+    print(f'gas pressure: {gas_pressure:.2f}')
+    print(f'liquid pressure: {liquid_pressure:.2f}')
+    print(f'solid pressure: {solid_pressure:.2f}')
+    
