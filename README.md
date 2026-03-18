@@ -3,9 +3,13 @@
 Molecular dynamics simulations of Lennard-Jones particles.
 
 ## Installation
-clone the repo from github, make sure to check requirements.txt
+git clone https://github.com/phstoot/Project-1-atoms
+pip install -r requirements.txt
 
 ## Usage
+Demo scripts (see below):
+python demo_*.py
+
 from simulation import Simulation
 sim = Simulation(density=0.8, temp=1.0)
 sim.equilibrate()
