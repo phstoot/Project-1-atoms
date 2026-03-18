@@ -1,11 +1,13 @@
 """
-Script to reproduce all displayed results in the final report.
+Script to reproduce all displayed results in the final report. Can take 10-20 minutes to run, due to simulation ensemble for sampling.
+For a quick run, comment out the large run_ensemble() methods, and replace by smaller run_ensemble() methods below.
 
 Usage:
     python results_demo.py
 
 Output:
     - energy plots for two-particle collisions with euler and verlet algorithm
+    - demonstration of a single simulation with FCC grid and randomly drawn velocities
     - pair correlation function plots (gas, liquid, solid)
     - pressures.txt with pressure values and error estimates
 """
@@ -48,7 +50,7 @@ def collision_demo(alg):
     plt.xlim(105,205)
     plt.legend()
     plt.tight_layout()
-    # plt.savefig(f'energies_{alg}.pdf')
+    plt.savefig(f'energies_{alg}.pdf')
     plt.show()
     spacer()
 
@@ -68,7 +70,14 @@ def spacer(n: int = 2):
 if __name__ == '__main__':
     section('overview')
     print('This script reproduces all results in the final report.')
-    sleep(2)
+    spacer()
+    sleep(1)
+    print('Due to the simulation ensemble, it can take 10-20 minutes to run. (For a quick run, comment out the large run_ensemble() methods, and replace by the smaller run_ensemble() methods already supplied in script.)')
+    response = input("Continue? [y/n]: ").strip().lower()
+    if response != 'y':
+        print("Exiting.")
+        exit()
+    sleep(1)
     mpl.rcParams.update({'axes.labelsize': 13,
               'axes.prop_cycle': cycler('color', 'brcmyk'),
               'axes.titleweight': 'heavy',
@@ -111,7 +120,7 @@ if __name__ == '__main__':
     ax.set_zticks([], minor=True) #type: ignore
     plt.title(fr'$\rho$={sim.density}, $T$={sim.temp}', weight='normal', size=12)
     plt.tight_layout()
-    # plt.savefig('fcc_grid.pdf')
+    plt.savefig('fcc_grid.pdf')
     plt.show()
     
     sim.equilibrate()
@@ -137,22 +146,21 @@ if __name__ == '__main__':
 
     section('simulation ensemble')
     gas = Simulation(density=0.3, temp=3) 
-    # liquid = Simulation(density=0.8, temp=1, num_particles=256)
-    # solid = Simulation(density=1.2, temp=0.5, num_particles=256)
-    liquid = Simulation(density=0.8, temp=1)
-    solid = Simulation(density=1.2, temp=0.5)
+    liquid = Simulation(density=0.8, temp=1, num_particles=256)
+    solid = Simulation(density=1.2, temp=0.5, num_particles=256)
     print('Three Simulation objects were initialized corresponding to Argon gas, liquid and solid:')
     print(gas)
     print(liquid)
     print(solid)
     spacer()
-    # gas.run_ensemble(n_resets=50, steps=1000, sample_interval=50, verbose=False)
-    # liquid.run_ensemble(n_resets=40, steps=1000, sample_interval=100, verbose=False)
-    # solid.run_ensemble(n_resets=15, steps=2000, sample_interval=200, verbose=False)
+    gas.run_ensemble(n_resets=50, steps=1000, sample_interval=50, verbose=False)
+    liquid.run_ensemble(n_resets=40, steps=1000, sample_interval=100, verbose=False)
+    solid.run_ensemble(n_resets=15, steps=2000, sample_interval=200, verbose=False)
 
-    gas.run_ensemble(n_resets=1, steps=1000, sample_interval=10, verbose=False)
-    liquid.run_ensemble(n_resets=1, steps=1000, sample_interval=10, verbose=False)
-    solid.run_ensemble(n_resets=1, steps=1000, sample_interval=10, verbose=False)
+    # For quick test runs:
+    # gas.run_ensemble(n_resets=1, steps=1000, sample_interval=10, verbose=False)
+    # liquid.run_ensemble(n_resets=1, steps=1000, sample_interval=10, verbose=False)
+    # solid.run_ensemble(n_resets=1, steps=1000, sample_interval=10, verbose=False)
 
     section('pair correlation function')
     print('Plotting...')
@@ -183,7 +191,7 @@ if __name__ == '__main__':
     plt.axhline(1, linewidth=0.5, color='grey', linestyle='--')
     plt.gca().xaxis.set_major_locator(plt.MultipleLocator(0.5)) # type: ignore
     plt.gca().xaxis.set_minor_locator(plt.MultipleLocator(0.1)) # type: ignore
-    # plt.savefig('pcf.pdf')
+    plt.savefig('pcf.pdf')
     plt.show()
 
     section('pressure')
@@ -192,13 +200,12 @@ if __name__ == '__main__':
     print(f"gas        {gas.density:<10.3f} {gas.temp:<15.3f} {gas_pressure_mean:<15.4f} {gas_pressure_error:<15.4f}\n")
     print(f"liquid     {liquid.density:<10.3f} {liquid.temp:<15.3f} {liquid_pressure_mean:<15.4f} {liquid_pressure_error:<15.4f}\n")
     print(f"solid      {solid.density:<10.3f} {solid.temp:<15.3f} {solid_pressure_mean:<15.4f} {solid_pressure_error:<15.4f}\n")
-
     
-    # with open("pressures.txt", "w") as f:
-    #     f.write(f"{'state':<10} {'density':<10} {'temperature':<15} {'pressure_mean':<15} {'pressure_std':<15}\n")
-    #     f.write("-" * 65 + "\n")
-    #     f.write(f"gas        {gas.density:<10.3f} {gas.temp:<15.3f} {gas_pressure_mean:<15.4f} {gas_pressure_error:<15.4f}\n")
-    #     f.write(f"liquid     {liquid.density:<10.3f} {liquid.temp:<15.3f} {liquid_pressure_mean:<15.4f} {liquid_pressure_error:<15.4f}\n")
-    #     f.write(f"solid      {solid.density:<10.3f} {solid.temp:<15.3f} {solid_pressure_mean:<15.4f} {solid_pressure_error:<15.4f}\n")
+    with open("pressures.txt", "w") as f:
+        f.write(f"{'state':<10} {'density':<10} {'temperature':<15} {'pressure_mean':<15} {'pressure_std':<15}\n")
+        f.write("-" * 65 + "\n")
+        f.write(f"gas        {gas.density:<10.3f} {gas.temp:<15.3f} {gas_pressure_mean:<15.4f} {gas_pressure_error:<15.4f}\n")
+        f.write(f"liquid     {liquid.density:<10.3f} {liquid.temp:<15.3f} {liquid_pressure_mean:<15.4f} {liquid_pressure_error:<15.4f}\n")
+        f.write(f"solid      {solid.density:<10.3f} {solid.temp:<15.3f} {solid_pressure_mean:<15.4f} {solid_pressure_error:<15.4f}\n")
 
     
