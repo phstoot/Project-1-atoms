@@ -209,8 +209,9 @@ class Simulation:
                           [0,   0.5, 0.5]])
         n = int(np.ceil((self.num_particles / 4) ** (1/3))) # round up, not down
         if abs(4 * n**3 - self.num_particles) > 0:
-            warnings.warn(f"num_particles={self.num_particles} is not a perfect FCC number. "
-                          f"Nearest valid values are {4*(n-1)**3} or {4*(n)**3}.")
+            print(f"Note: num_particles={self.num_particles} is not a perfect FCC number. "
+                f"Nearest valid values are {4*(n-1)**3} or {4*(n**3)}. "
+                f"Simulation will proceed with a partial lattice.")
         cell_size = self.boxsize / n
 
         positions = []
@@ -705,6 +706,7 @@ class Simulation:
             The virial term as in Verlet (1967)
         """
         diff, dist = self._pairwise_distances()
+        # with np.errstate(invalid='ignore', divide='ignore'):
         dUdr_term = -interaction_force(dist) * dist**2
         virial = np.sum(np.triu(dUdr_term, k=1))
         return virial
