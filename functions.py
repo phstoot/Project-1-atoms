@@ -2,81 +2,141 @@ import numpy as np
 import matplotlib.pyplot as plt
 from random import randint
 from numba import njit
+<<<<<<< HEAD
 
+=======
+>>>>>>> 02fc8f89115dcd981e562ace4b0942717ae0f99c
 
 ## We could technically write all equations allowing for both natural and normal units (so using function(*,natural = True))
 
+# rho = ...  # Particle density, not necessary for now
+# T = ...  # temperature
+# epsilon = 1.654 * 10 ** (-10)  # 119.8 #K (epsilon / k_boltzmann)
+# sigma = 3.405 * 10 ** (-10)  # Angstrom
+# mass = 6.6 * 10 ** (-26)  # Mass
 
-# Define variables
-N = 2
-L = 10 # size of box, probably decide later
 
-rho = ... # Particle density, not necessary for now
-T = ... # temperature   
-epsilon = 1.654 * 10**(-10) #119.8 #K (epsilon / k_boltzmann)
-sigma = 3.405 * 10**(-10) # Angstrom
-mass = 6.6 * 10**(-26) # Mass
+@njit
+def interaction_force(r):
+    """
+    Calculates interaction force in natural units, based on the Lennard-Jones potential and already normalizing the connecting vector.
 
-def Interaction_force(r):
-    '''
-    Calculates force in natural units. 
-        
-    :param r (float): Distance between two particles in natural units.
-    
-    :return (float) : Magnitude of Interaction Force  
-    '''
-    
-    
-    F = 24 * (2 * r**(-14) - r**(-8)
-    )
+    Parameters
+    ----------
+    r : float
+        Distance between two particles in natural units.
+
+    Returns
+    -------
+    F : float
+        Magnitude of Interaction Force in natural units.
+    """
+
+    F = 24 * (2 * r ** (-14) - r ** (-8))
     return F
 
-## Minimal image convenction
-def min_vector(part1, part2):
-    '''Finds smallest vector connecting particle 1 to particle 2, in the smallest image convention.
-    
-    Parameters:
-    part1 (arr): main particle
-    part2 (arr): interaction particle
-    
-    Returns:
-    arr: Vector pointing to closest version of interaction particle.
-    '''
+
+def min_vector(part1, part2, L=10, dim=2):   
+    """
+    Finds smallest vector connecting particle 1 to particle 2, in the smallest image convention.
+
+    Parameters
+    ----------
+    part1 : arr
+        Position of main particle in natural units.
+    part2 : arr
+        Position of interaction particle in natural units.
+    L : float
+        Size of the simulation box in natural units.
+    dim : int
+        Dimensionality of the system.
+
+    Returns
+    -------
+    min_vec : arr
+        Vector pointing to closest version of interaction particle in natural units.
+    """
     vec = part2 - part1
-    min_vec = np.mod(vec + [0.5*L, 0.5*L], [L,L]) - [0.5*L, 0.5*L]
+    min_vec = np.mod(
+        vec + np.full(dim, 0.5 * L, dtype=float), np.full(dim, L, dtype=float)
+    ) - np.full(dim, 0.5 * L, dtype=float)
     return min_vec
+
 
 ## Energies
 def Kinetic_Energies(vel):
-    '''
+    """
     Calculates the Kinetic Energy of each particle in natural units.
-    
-    :param vel (arr): Instantaneous velocity array in natural units.
-    
-    :return (float): Kinetic Energy array in natural units.
-    '''
-    
-    Kin = 1/2 * vel * vel
-    return Kin
-     
-def Lennard_Jones_Potential(r):
-    '''
-    Calculates Potential Energy due to each particle interaction, in natural units. 
+
+    Parameters
+    ----------
+    vel : arr
+        Instantaneous velocity array in natural units.
         
-    :param r (float): Distance between two particles in natural units.
-    
-    :return (float): Interaction Potential
-    '''
-    
-    U = 4 * (
-        r**(-12) - r**(-6)
-    )
+    Returns
+    -------
+    E_kin : float
+        Kinetic Energy array in natural units.
+    """
+
+    E_kin = 1 / 2 * vel * vel
+    return E_kin
+
+
+def lennard_jones_potential(r):
+    """
+    Calculates Potential Energy due to each particle interaction, in natural units.
+
+    Parameters
+    ----------
+    r : float
+        Distance between two particles in natural units.
+
+    Returns
+    -------
+    U : float
+        Potential Energy array in natural units.
+    """
+
+    U = 4 * (r ** (-12) - r ** (-6))
     return U
 
+<<<<<<< HEAD
 @njit
 def compute_forces_numba(positions, boxsize, rcut, 
                         cell_particles, cell_counts, 
                         num_cells_per_dim):
+=======
+
+@njit
+def compute_forces_numba(positions, boxsize, rcutoff, 
+                        cell_particles, cell_counts, 
+                        num_cells_per_dim):
+    """
+    Computes forces on each particle using the linked-cell algorithm, optimized with numba. Needs to be conducted outside of the Simulation class.
+
+    
+    Parameters
+    ----------
+    positions : arr
+        Array of particle positions in natural units.
+    boxsize : float
+        Size of the simulation box in natural units.
+    rcutoff : float
+        Cutoff radius for interactions in natural units.
+    cell_particles : arr
+        Array of particle indices in each cell.
+    cell_counts : arr
+        Array of particle counts in each cell.
+    num_cells_per_dim : int
+        Number of cells per dimension.
+
+    Returns
+    -------
+    forces : arr
+        Array of forces on each particle in natural units.
+    """
+>>>>>>> 02fc8f89115dcd981e562ace4b0942717ae0f99c
 
     N = positions.shape[0]
     forces = np.zeros_like(positions)
@@ -119,13 +179,23 @@ def compute_forces_numba(positions, boxsize, rcut,
 
                                     dist2 = rij[0]**2 + rij[1]**2 + rij[2]**2
 
+<<<<<<< HEAD
                                     if dist2 < rcut * rcut:
                                         dist = np.sqrt(dist2)
                                         fmag = -Interaction_force(dist)
+=======
+                                    if dist2 < rcutoff * rcutoff:
+                                        dist = np.sqrt(dist2)
+                                        fmag = -interaction_force(dist)
+>>>>>>> 02fc8f89115dcd981e562ace4b0942717ae0f99c
 
                                         for k in range(3):
                                             f = fmag * rij[k]
                                             forces[i, k] += f
                                             forces[j, k] -= f
 
+<<<<<<< HEAD
     return forces
+=======
+    return forces
+>>>>>>> 02fc8f89115dcd981e562ace4b0942717ae0f99c

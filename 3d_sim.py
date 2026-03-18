@@ -12,44 +12,48 @@ from functions import (
 
 timestr = time.strftime("%d-%m_%H.%M.%S")
 ## Initial conditions
-N = 3
+N = 30
 L = 10
 h = 0.001  # Natural units
-dim = 2
-N_steps = 1000
+
+dim = 3
+N_steps = 500
 
 # # for testing purposes:
-pos = np.array([[-8, 9.8], [8, 9.8], [5, 5]], dtype=float) / 3
-vel = np.array([[-10, 0], [10, 0], [-25, -25]], dtype=float) / 3
+# pos = np.array([[-7, 5, 5],
+#                 [7, 5, 5]], dtype=float)
+# vel = np.array([[20, 0, 0],
+#                 [-20,0, 0]], dtype=float)
 
-pos = np.random.uniform(0, L, size=(N, 2))
-vel = np.random.uniform(-4 * L, 4 * L, size=(N, 2))
+
+pos = np.random.uniform(0, L, size=(N, dim))
+vel = np.random.uniform(-4 * L, 4 * L, size=(N, dim))
 kin_0 = np.sum(
     Kinetic_Energies(np.linalg.norm(vel, axis=1))
 )  # initial kinetic energy to set y limit in animation
 
 
 # Create position and velocity (3D) arrays to store data over time
-All_pos = np.zeros((N, 2, N_steps + 1))
-All_vel = np.zeros((N, 2, N_steps + 1))
+All_pos = np.zeros((N, dim, N_steps + 1))
+All_vel = np.zeros((N, dim, N_steps + 1))
 All_kin = []
 All_pot = []
 
 for i in range(N):
-    All_pos[i, 0, 0] = pos[i, 0]
-    All_pos[i, 1, 0] = pos[i, 1]
-    All_vel[i, 0, 0] = vel[i, 0]
-    All_vel[i, 1, 0] = vel[i, 1]
+    for j in range(dim):
+        All_pos[i, j, 0] = pos[i, j]
+        All_vel[i, j, 0] = vel[i, j]
 
 
 ## Simulation function
 # algorithmically, follow the following steps:
+# 0) calculate forces at t with old positions
 # 1) calculate positions at t+h with verlet position algorithm
 # 2) calculate forces at t+h with potential function and positions
 # 3) calculate velocities at t+h with verlet velocity algorithm
 
 
-def verlet_integration(pos, vel):
+def verlet_integration_3D(pos, vel):
     # we need to pass pos and vel otherwise it breaks. This is due to Python's distinction
     # between local and global variables. I think this is the point where we need
     # to start thinking about proper restructuring and creating classes.
@@ -63,7 +67,7 @@ def verlet_integration(pos, vel):
     # Only use for loops if necessary
 
     # this block calculates forces at time t
-    F_t = np.zeros((N, 2))
+    F_t = np.zeros((N, dim))
     U_t = 0
 
     for i in range(N):
@@ -97,7 +101,7 @@ def verlet_integration(pos, vel):
     # (2) Calculate new forces with updated positions at time t+h:
     # note: Write this block into separate function since we use it often
 
-    F_t_plus_h = np.zeros((N, 2))
+    F_t_plus_h = np.zeros((N, dim))
     for i in range(N):
         main_particle = pos[i, :]
         for j in range(N):
@@ -113,71 +117,47 @@ def verlet_integration(pos, vel):
     vel += 0.5 * h * (F_t + F_t_plus_h)
 
 
-## simulate over time with storage for plotting
-
-# for k in range (N_steps):
-#     verlet_integration()
-#     ## Store pos and velocity in overall array for plotting the evolution later on
-#     for m in range(N):
-#         All_pos[m,0,k+1] = pos[m,0]
-#         All_pos[m,1,k+1] = pos[m,1]
-#         All_vel[m,0,k+1] = vel[m,0]
-#         All_vel[m,1,k+1] = vel[m,1]
-
-# Total_energy = np.array(All_kin) + np.array(All_pot)
-
-
-# # # Plot the potential and kinetic energies of system over time
-# plt.figure(figsize=(12,3))
-# plt.plot(np.arange(150), All_kin[75:225], label='Ekin')
-# plt.plot(np.arange(150), All_pot[75:225], label='Epot')
-# plt.plot(np.arange(150), Total_energy[75:225], label='Etot')
-# plt.legend()
-# plt.title('Energy evolution')
-# plt.xlabel('t')
-# plt.ylabel('E')
-# plt.show()
-
-
-# plt.figure(figsize=(6,6))
-# for i in range(N):
-#     plt.plot(All_pos[i,0,:], All_pos[i,1,:])
-# plt.title('Particle trails')
-# plt.show()
-
-
 ## Animate without storing data
 
-colors = []
-for i in range(N):  # from some stackexchange post
-    colors.append("#%06X" % randint(0, 0xFFFFFF))
-
-
 # Animation part
-fig, (ax, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(6, 8), height_ratios=[6, 3])
+fig = plt.figure(figsize=(5, 9))
+
+# First Axes: the 3d scatter
+ax = fig.add_subplot(2, 1, 1, projection="3d")
 ax.set_xlim(0, L)
 ax.set_ylim(0, L)
+ax.set_zlim(0, L)
 ax.set_aspect("equal")
 ax.set_title("Verlet Algorithm")
-
+# ax.xaxis.set_pane_color('grey')
+# ax.yaxis.set_pane_color('grey')
+# ax.zaxis.set_pane_color('grey')
+# ax.xaxis.pane.set_edgecolor('red')
+ax.grid(False)
 # Create scatter object (this is what we update)
-scat = ax.scatter(pos[:, 0], pos[:, 1], c="r", s=100)
+scat = ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2])
+
+# Second Axes: energy evolution
+ax2 = fig.add_subplot(2, 1, 2)
 (plot_kin,) = ax2.plot([], [], label="E_kin")
 (plot_pot,) = ax2.plot([], [], label="E_pot")
 # rolling window size
 repeat_length = 500
-ax2.set_xlim([0, repeat_length])
-ax2.set_ylim([(0 - 0.1 * kin_0), (kin_0 + 0.1 * kin_0)])
+ax2.set_xlim(0, repeat_length)
+ax2.set_ylim(bottom=((0 - 0.1 * kin_0) / N), top=((kin_0 + 0.1 * kin_0) / N))
+# ax2.set_yscale("symlog", linthresh=1e-2)
 ax2.legend(loc=7)
 
 
 def update(frame):
-    verlet_integration(pos, vel)  # advance system by one step
-    scat.set_offsets(pos)  # update particle positions
+    verlet_integration_3D(pos, vel)  # advance system by one step
+    scat._offsets3d = (pos[:, 0], pos[:, 1], pos[:, 2])
     plot_kin.set_xdata(np.arange(frame))  # update time axis
-    plot_kin.set_ydata(All_kin[0:frame])  # update energy data
+    plot_kin.set_ydata(
+        np.array(All_kin[0:frame]) / N
+    )  # plot E/N to keep scale manageable
     plot_pot.set_xdata(np.arange(frame))
-    plot_pot.set_ydata(All_pot[0:frame])
+    plot_pot.set_ydata(np.array(All_pot[0:frame]) / N)
     if frame >= repeat_length:
         lim = ax2.set_xlim(frame - repeat_length, frame)
     else:
@@ -186,7 +166,7 @@ def update(frame):
 
 
 ani = animation.FuncAnimation(
-    fig, update, frames=1000, interval=20, blit=False, repeat=False
+    fig, update, frames=500, interval=20, blit=False, repeat=False
 )
 # writervideo = animation.PillowWriter(fps=50)
 # ani.save(fr'Verlet_{N}_particles_{timestr}.gif')
