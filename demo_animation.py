@@ -8,11 +8,11 @@ Output:
     Matplotlib animation window displaying the 3D system box and the live energy evolution.
 """
 
-from simulation import Simulation
+from cpa_group5.simulation import Simulation
 import matplotlib.pyplot as plt
 from time import sleep
 import numpy as np
-from utils import spacer, section
+from cpa_group5.utils import spacer, section
 import matplotlib as mpl
 from cycler import cycler
 

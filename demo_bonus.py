@@ -9,12 +9,12 @@ Output:
     - resulting energy evolution plot of simulation
 """
 
-from simulation import Simulation
+from cpa_group5.simulation import Simulation
 import matplotlib.pyplot as plt
 import numpy as np
 from time import sleep
 from tqdm import tqdm
-from utils import lennard_jones_potential, interaction_force, min_vector, spacer, section
+from cpa_group5.utils import spacer, section
 
 if __name__ == '__main__':
     section("overview")

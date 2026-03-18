@@ -12,11 +12,11 @@ Output:
     - pressures.txt with pressure values and error estimates
 """
 
-from simulation import Simulation
+from cpa_group5.simulation import Simulation
 import matplotlib.pyplot as plt
 from time import sleep
 import numpy as np
-from utils import spacer, section
+from cpa_group5.utils import spacer, section
 import matplotlib as mpl
 from cycler import cycler
 
