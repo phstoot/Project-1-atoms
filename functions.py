@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from random import randint
+from numba import njit
 
 
 ## We could technically write all equations allowing for both natural and normal units (so using function(*,natural = True))
@@ -72,3 +73,59 @@ def Lennard_Jones_Potential(r):
     )
     return U
 
+@njit
+def compute_forces_numba(positions, boxsize, rcut, 
+                        cell_particles, cell_counts, 
+                        num_cells_per_dim):
+
+    N = positions.shape[0]
+    forces = np.zeros_like(positions)
+
+    for cx in range(num_cells_per_dim):
+        for cy in range(num_cells_per_dim):
+            for cz in range(num_cells_per_dim):
+
+                cell_id = cx + num_cells_per_dim*(cy + num_cells_per_dim*cz)
+
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        for dz in (-1, 0, 1):
+
+                            nx = (cx + dx) % num_cells_per_dim
+                            ny = (cy + dy) % num_cells_per_dim
+                            nz = (cz + dz) % num_cells_per_dim
+
+                            neighbor_id = nx + num_cells_per_dim*(ny + num_cells_per_dim*nz)
+
+                            for a in range(cell_counts[cell_id]):
+                                i = cell_particles[cell_id, a]
+                                if i == -1:
+                                    continue
+
+                                for b in range(cell_counts[neighbor_id]):
+                                    j = cell_particles[neighbor_id, b]
+
+                                    if j <= i:
+                                        continue
+
+                                    rij = positions[j] - positions[i]
+
+                                    # minimal image
+                                    for k in range(3):
+                                        if rij[k] > 0.5 * boxsize:
+                                            rij[k] -= boxsize
+                                        elif rij[k] < -0.5 * boxsize:
+                                            rij[k] += boxsize
+
+                                    dist2 = rij[0]**2 + rij[1]**2 + rij[2]**2
+
+                                    if dist2 < rcut * rcut:
+                                        dist = np.sqrt(dist2)
+                                        fmag = -Interaction_force(dist)
+
+                                        for k in range(3):
+                                            f = fmag * rij[k]
+                                            forces[i, k] += f
+                                            forces[j, k] -= f
+
+    return forces
