@@ -595,10 +595,7 @@ class Simulation:
         self.ax = fig.add_subplot(2,1,1, projection='3d')
         self.ax.set_xlim(0, self.boxsize)
         self.ax.set_ylim(0, self.boxsize)
-        self.ax.set_zlim(0, self.boxsize) # Only for 3D, not for 2D
-        self.ax.set_xlabel(r'$x [\frac{m}{\sigma}]$')
-        self.ax.set_ylabel(r'$y [\frac{m}{\sigma}]$')
-        self.ax.set_zlabel(r'$z [\frac{m}{\sigma}]$')
+        self.ax.set_zlim(0, self.boxsize) 
         self.ax.set_aspect("equal")
         self.ax.grid(False)
         
@@ -610,10 +607,6 @@ class Simulation:
         (self.plot_pot,) = self.ax2.plot([], [], label=r"E$_{pot}$")
         (self.plot_tot,) = self.ax2.plot([], [], label=r"E$_{total}$")
         
-        # for i in range(self.timestep): # Probably not necessary, but in case run_live is called after some steps have already been taken
-        #     self.e_kin_hist.append(self._kinetic_energy())
-        #     self.e_pot_hist.append(self._potential_energy())
-
         # rolling window size
         mid = ((self._potential_energy() + self._kinetic_energy()) / 2) / self.num_particles
         amp = (self._kinetic_energy() / self.num_particles) - mid
