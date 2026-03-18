@@ -7,3 +7,8 @@ __pycache__/restructure_setup.cpython-312.pyc
 .gitignore
 __pycache__/simulation.cpython-312.pyc
 __pycache__/functions.cpython-312.pyc
+pcf.png
+pressures.txt
+energies_euler.pdf
+energies_verlet.pdf
+.gitignore
