@@ -385,12 +385,13 @@ class Simulation:
         if alg == "verlet":
             self._update_positions(alg="verlet")            # with self.forces from initialization or previous step
             if self.optimized and self.numba == False and np.floor(self.boxsize / self.rcutoff) > 2: # cell list algorithm only makes sense if we have at least 3 cells per dimension
-                self.forces = self._net_forces_cell_list() 
+                new_forces = self._net_forces_cell_list() 
             if self.optimized and self.numba and np.floor(self.boxsize / self.rcutoff) > 2: # same for numba-optimized cell list algorithm
-                self.forces = self._net_forces_cell_list_numba()
+                new_forces = self._net_forces_cell_list_numba()
             else:
-                self.forces = self._net_forces()
-            self._update_velocities(self.forces, alg= "verlet") # uses both F(t) and F(t+h)
+                new_forces = self._net_forces()
+            self._update_velocities(new_forces, alg= "verlet") # uses both F(t) and F(t+h)
+            self.forces = new_forces
 
         
         if alg == "euler":
@@ -578,6 +579,9 @@ class Simulation:
         self.ax.set_xlim(0, self.boxsize)
         self.ax.set_ylim(0, self.boxsize)
         self.ax.set_zlim(0, self.boxsize) # Only for 3D, not for 2D
+        self.ax.set_xlabel(r'$x [\frac{m}{\sigma}]$')
+        self.ax.set_ylabel(r'$y [\frac{m}{\sigma}]$')
+        self.ax.set_zlabel(r'$z [\frac{m}{\sigma}]$')
         self.ax.set_aspect("equal")
         self.ax.grid(False)
         
@@ -598,6 +602,8 @@ class Simulation:
         amp = (self._kinetic_energy() / self.num_particles) - mid
         self.ax2.set_xlim(left=(max(0, len(self.e_kin_hist) - steps)), right=max(steps, len(self.e_kin_hist)))
         self.ax2.set_ylim(bottom=(mid - 1.4*amp), top=(mid + 1.4*amp))
+        self.ax2.set_xlabel(r'\textit{t} (steps)')
+        self.ax2.set_ylabel(r'Energy per particle')
         self.ax2.legend(loc=7)
         
         self.ani = animation.FuncAnimation(
