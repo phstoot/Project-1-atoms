@@ -4,8 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from collections import defaultdict
+from numba import njit
 import matplotlib.animation as animation
-from functions import interaction_force, lennard_jones_potential
+from functions import interaction_force, lennard_jones_potential, compute_forces_numba
 
 
 class PositiveInteger:
@@ -92,7 +93,8 @@ class Simulation:
             timestep_h : float  = 0.001, 
             units : str         = 'natural',
             optimized:  bool = False,
-            rcutoff: float = 2.43
+            rcutoff: float = 2.43,
+            numba = False
 
         ):
         """_summary_
@@ -111,7 +113,9 @@ class Simulation:
             _description_, by default 'natural'
         optimized : bool, optional
             _description_, by default False
-            cutoff: float, optional
+        numbaoptimized : bool, optional
+            _description_, by default False
+        cutoff: float, optional
         _description_, by default 2.43
         """
         self.density         = density
@@ -122,6 +126,7 @@ class Simulation:
         self.units           = units          # goes through @property setter
         self.optimized       = optimized
         self.rcutoff         = rcutoff # for linked-cell algorithm
+        self.numba           = numba    # for numba-optimized cell list algorithm
         
         self.boxsize         = (self.num_particles / self.density) ** (1/self.dim) # derived from density 
         self.positions       = self._init_positions()
@@ -303,6 +308,52 @@ class Simulation:
 
         return forces
     
+    def _build_cell_list_numba(self):
+        """Private method: builds cell list compatible with numba, for the linked-cell algorithm.
+        Creates two arrays: cell_particles <--> entails the particle indices for each cell;  cell_counts <--> entails number of particles in each cell. 
+        The arrays are implemented when calculating forces between particles of adjacent cells. 
+        """
+        
+        self.num_cells_per_dim = np.floor(self.boxsize / self.rcutoff).astype(int)
+        
+        num_cells = self.num_cells_per_dim ** 3
+
+
+        max_particles = 200  # safe upper bound per cell
+
+        self.cell_particles = -np.ones((num_cells, max_particles), dtype=np.int32)
+        self.cell_counts = np.zeros(num_cells, dtype=np.int32)
+
+        cell_indices = np.floor(self.positions / self.rcutoff).astype(np.int32)
+        cell_indices %= self.num_cells_per_dim
+
+        for i in range(self.num_particles):
+            cx, cy, cz = cell_indices[i]
+
+            cell_id = cx + self.num_cells_per_dim * (
+                cy + self.num_cells_per_dim * cz
+            )
+
+            count = self.cell_counts[cell_id]
+            self.cell_particles[cell_id, count] = i
+            self.cell_counts[cell_id] += 1
+    
+    
+    def _net_forces_cell_list_numba(self):
+
+        self._build_cell_list_numba()
+
+        forces = compute_forces_numba(
+            self.positions,
+            self.boxsize,
+            self.rcutoff,
+            self.cell_particles,
+            self.cell_counts,
+            self.num_cells_per_dim,
+        )
+
+        return forces
+        
     def _update_positions(self, alg: str="verlet"):
         """Private method: use Verlet's algorithm to update positions, with box constraints applied. Part of general step in the simulation.
         """
@@ -333,20 +384,24 @@ class Simulation:
         """
         if alg == "verlet":
             self._update_positions(alg="verlet")            # with self.forces from initialization or previous step
-            if self.optimized and int(self.boxsize / self.rcutoff) > 2: # cell list algorithm only makes sense if we have at least 3 cells per dimension
-                new_forces = self._net_forces_cell_list()   # optimized force calculation
+            if self.optimized and self.numba == False and np.floor(self.boxsize / self.rcutoff) > 2: # cell list algorithm only makes sense if we have at least 3 cells per dimension
+                self.forces = self._net_forces_cell_list() 
+            if self.optimized and self.numba and np.floor(self.boxsize / self.rcutoff) > 2: # same for numba-optimized cell list algorithm
+                self.forces = self._net_forces_cell_list_numba()
             else:
-                new_forces = self._net_forces()
-            self._update_velocities(new_forces, alg= "verlet") # uses both F(t) and F(t+h)
-            self.forces = new_forces            # roll forward
+                self.forces = self._net_forces()
+            self._update_velocities(self.forces, alg= "verlet") # uses both F(t) and F(t+h)
+
         
         if alg == "euler":
             self._update_positions(alg="euler")
             self._update_velocities(None, alg="euler")
-            if self.optimized and int(self.boxsize / self.rcutoff) > 2: # cell list algorithm only makes sense if we have at least 3 cells per dimension
-                new_forces = self._net_forces_cell_list()   # optimized force calculation
+            if self.optimized and self.numba == False and int(self.boxsize / self.rcutoff) > 2: # cell list algorithm only makes sense if we have at least 3 cells per dimension
+                self.forces = self._net_forces_cell_list()   # optimized force calculation
+            if self.numba and np.floor(self.boxsize / self.rcutoff) > 2: # same for numba-optimized cell list algorithm
+                self.forces = self._net_forces_cell_list_numba()
             else:
-                new_forces = self._net_forces()
+                self.forces = self._net_forces()
     
     def _run(self, steps: int=1000):
         """Private method for running the simulation without storing history and without status checks, 
