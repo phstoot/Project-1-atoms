@@ -121,7 +121,7 @@ class Simulation:
         self.e_kin_hist      = []
         self.e_pot_hist      = []
         self.e_tot_hist      = [] # STILL UNUSED
-        self.timestep        = 0
+        self.timestep        = 0  # STILL UNUSED, but could be useful for tracking time in live animation or long simulations
         self._status         = 'initialized'
 
     @property
@@ -256,8 +256,6 @@ class Simulation:
             self._update_positions(alg="euler")
             self._update_velocities(None, alg="euler")
             self.forces = self._net_forces()
-        
-        self.timestep += 1
     
     def _run(self, steps: int=1000):
         """Private method for running the simulation without storing history and without status checks, 
@@ -353,12 +351,15 @@ class Simulation:
         
         self.scat._offsets3d = (self.positions[:,0], self.positions[:,1], self.positions[:,2])
         
-        start = max(0, self.timestep - self.steps_window)
+        start = max(0, len(self.e_kin_hist) - self.steps_window)
         
         self.plot_kin.set_xdata(np.arange(len(self.e_kin_hist)))
         self.plot_kin.set_ydata(np.array(self.e_kin_hist) / self.num_particles)
         self.plot_pot.set_xdata(np.arange(len(self.e_pot_hist)))
         self.plot_pot.set_ydata(np.array(self.e_pot_hist) / self.num_particles)
+        self.plot_tot.set_xdata(np.arange(len(self.e_kin_hist)))
+        self.plot_tot.set_ydata((np.array(self.e_kin_hist) + np.array(self.e_pot_hist)) / self.num_particles)
+
         
         self.ax2.set_xlim(start, start + self.steps_window)
                            
@@ -366,6 +367,8 @@ class Simulation:
     
     
     def run_live(self, steps: int=1000):
+        """Runs the simulation continouusly. Plots the energy evolution per particle in real-time.
+        """
         if self._status == "initialized":
             raise RuntimeError("System has not been equilibrated. Call equilibrate() first.")
         if self._status == "completed":
@@ -390,6 +393,7 @@ class Simulation:
         self.ax2 = fig.add_subplot(2, 1, 2)
         (self.plot_kin,) = self.ax2.plot([], [], label=r"E$_{kin}$")
         (self.plot_pot,) = self.ax2.plot([], [], label=r"E$_{pot}$")
+        (self.plot_tot,) = self.ax2.plot([], [], label=r"E$_{total}$")
         
         # for i in range(self.timestep): # Probably not necessary, but in case run_live is called after some steps have already been taken
         #     self.e_kin_hist.append(self._kinetic_energy())
@@ -397,7 +401,7 @@ class Simulation:
 
         # rolling window size
         mid = ((self._potential_energy() + self._kinetic_energy()) / 2) / self.num_particles
-        self.ax2.set_xlim(left=(max(0, self.timestep - steps)), right=self.timestep)
+        self.ax2.set_xlim(left=(max(0, len(self.e_kin_hist) - steps)), right=len(self.e_kin_hist))
         self.ax2.set_ylim(bottom=(mid - 2.2*mid), top=(mid + 2.2*mid))
         self.ax2.legend(loc=7)
         
@@ -413,10 +417,6 @@ class Simulation:
         plt.show()
         self._status = 'completed'
     
-    
-    # def equilibrate(self, density, temp):
-    #     # see lecture 4 and coding guidelines
-    #     pass
 
     # def simulate(self, algorithm, time, *, live_animation=True, store_arrays=True):
     #     # see lecture 4

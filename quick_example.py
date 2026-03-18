@@ -19,7 +19,7 @@ from functions import lennard_jones_potential, interaction_force, min_vector
 # plt.show()
 
 if __name__ == '__main__':
-    test_simulation = Simulation(num_particles=300, temp=6)
+    test_simulation = Simulation(num_particles=108, temp=0.5, density=1.2)
     print(f"Simulation instance created:")
     print(test_simulation)
     test_simulation.equilibrate()
