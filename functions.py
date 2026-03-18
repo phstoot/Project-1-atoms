@@ -2,10 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from random import randint
 from numba import njit
-<<<<<<< HEAD
-
-=======
->>>>>>> 02fc8f89115dcd981e562ace4b0942717ae0f99c
 
 ## We could technically write all equations allowing for both natural and normal units (so using function(*,natural = True))
 
@@ -101,12 +97,6 @@ def lennard_jones_potential(r):
     U = 4 * (r ** (-12) - r ** (-6))
     return U
 
-<<<<<<< HEAD
-@njit
-def compute_forces_numba(positions, boxsize, rcut, 
-                        cell_particles, cell_counts, 
-                        num_cells_per_dim):
-=======
 
 @njit
 def compute_forces_numba(positions, boxsize, rcutoff, 
@@ -136,7 +126,6 @@ def compute_forces_numba(positions, boxsize, rcutoff,
     forces : arr
         Array of forces on each particle in natural units.
     """
->>>>>>> 02fc8f89115dcd981e562ace4b0942717ae0f99c
 
     N = positions.shape[0]
     forces = np.zeros_like(positions)
@@ -179,23 +168,13 @@ def compute_forces_numba(positions, boxsize, rcutoff,
 
                                     dist2 = rij[0]**2 + rij[1]**2 + rij[2]**2
 
-<<<<<<< HEAD
-                                    if dist2 < rcut * rcut:
-                                        dist = np.sqrt(dist2)
-                                        fmag = -Interaction_force(dist)
-=======
                                     if dist2 < rcutoff * rcutoff:
                                         dist = np.sqrt(dist2)
                                         fmag = -interaction_force(dist)
->>>>>>> 02fc8f89115dcd981e562ace4b0942717ae0f99c
 
                                         for k in range(3):
                                             f = fmag * rij[k]
                                             forces[i, k] += f
                                             forces[j, k] -= f
 
-<<<<<<< HEAD
     return forces
-=======
-    return forces
->>>>>>> 02fc8f89115dcd981e562ace4b0942717ae0f99c
