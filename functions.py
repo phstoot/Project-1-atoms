@@ -32,7 +32,7 @@ def interaction_force(r):
     return F
 
 
-def min_vector(part1, part2, L=10, dim=2):   
+def min_vector(part1, part2, L=10, dim=2):
     """
     Finds smallest vector connecting particle 1 to particle 2, in the smallest image convention.
 
@@ -68,7 +68,7 @@ def Kinetic_Energies(vel):
     ----------
     vel : arr
         Instantaneous velocity array in natural units.
-        
+
     Returns
     -------
     E_kin : float
@@ -99,13 +99,13 @@ def lennard_jones_potential(r):
 
 
 @njit
-def compute_forces_numba(positions, boxsize, rcutoff, 
-                        cell_particles, cell_counts, 
-                        num_cells_per_dim):
+def compute_forces_numba(
+    positions, boxsize, rcutoff, cell_particles, cell_counts, num_cells_per_dim
+):
     """
     Computes forces on each particle using the linked-cell algorithm, optimized with numba. Needs to be conducted outside of the Simulation class.
 
-    
+
     Parameters
     ----------
     positions : arr
@@ -134,7 +134,7 @@ def compute_forces_numba(positions, boxsize, rcutoff,
         for cy in range(num_cells_per_dim):
             for cz in range(num_cells_per_dim):
 
-                cell_id = cx + num_cells_per_dim*(cy + num_cells_per_dim*cz)
+                cell_id = cx + num_cells_per_dim * (cy + num_cells_per_dim * cz)
 
                 for dx in (-1, 0, 1):
                     for dy in (-1, 0, 1):
@@ -144,7 +144,9 @@ def compute_forces_numba(positions, boxsize, rcutoff,
                             ny = (cy + dy) % num_cells_per_dim
                             nz = (cz + dz) % num_cells_per_dim
 
-                            neighbor_id = nx + num_cells_per_dim*(ny + num_cells_per_dim*nz)
+                            neighbor_id = nx + num_cells_per_dim * (
+                                ny + num_cells_per_dim * nz
+                            )
 
                             for a in range(cell_counts[cell_id]):
                                 i = cell_particles[cell_id, a]
@@ -166,7 +168,7 @@ def compute_forces_numba(positions, boxsize, rcutoff,
                                         elif rij[k] < -0.5 * boxsize:
                                             rij[k] += boxsize
 
-                                    dist2 = rij[0]**2 + rij[1]**2 + rij[2]**2
+                                    dist2 = rij[0] ** 2 + rij[1] ** 2 + rij[2] ** 2
 
                                     if dist2 < rcutoff * rcutoff:
                                         dist = np.sqrt(dist2)
