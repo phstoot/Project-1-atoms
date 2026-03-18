@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from collections import defaultdict
 import matplotlib.animation as animation
 from functions import interaction_force, lennard_jones_potential
 
@@ -58,6 +59,10 @@ class Simulation:
         _description_, by default 0.001
     units : str, optional
         _description_, by default 'natural'
+    optimized : bool, optional
+        _description_, by default False
+    cutoff: float, optional
+        _description_, by default 2.71
 
     Returns
     -------
@@ -85,15 +90,38 @@ class Simulation:
             num_particles : int = 108, 
             dim : int           = 3, 
             timestep_h : float  = 0.001, 
-            units : str         = 'natural'
+            units : str         = 'natural',
+            optimized:  bool = False,
+            rcutoff: float = 2.43
 
         ):
+        """_summary_
+
+        Parameters
+        ----------
+        density : float
+            _description_
+        num_particles : int, optional
+            _description_, by default 108
+        dim : int, optional
+            _description_, by default 2
+        timestep_h : float, optional
+            _description_, by default 0.001
+        units : str, optional
+            _description_, by default 'natural'
+        optimized : bool, optional
+            _description_, by default False
+            cutoff: float, optional
+        _description_, by default 2.43
+        """
         self.density         = density
         self.temp            = temp
         self.num_particles   = num_particles
         self.dim             = dim            # goes through @property setter
         self.timestep_h      = timestep_h
         self.units           = units          # goes through @property setter
+        self.optimized       = optimized
+        self.rcutoff         = rcutoff # for linked-cell algorithm
         
         self.boxsize         = (self.num_particles / self.density) ** (1/self.dim) # derived from density 
         self.positions       = self._init_positions()
@@ -106,7 +134,7 @@ class Simulation:
         self.e_kin_hist      = []
         self.e_pot_hist      = []
         self.e_tot_hist      = [] # STILL UNUSED
-        self.timestep        = 0
+        self.timestep        = 0  # STILL UNUSED, but could be useful for tracking time in live animation or long simulations
         self._status         = 'initialized'
 
     @property
@@ -209,6 +237,72 @@ class Simulation:
         F_matrix = F_mag[:, :, np.newaxis] * diff
         return F_matrix.sum(axis=1)
     
+    def _compute_cell_indices(self):
+        """Private method to compute the cell index for each particle, used for cell list algorithm.
+        """
+        return np.floor(self.positions / self.rcutoff).astype(int)
+    
+    def _build_cell_list(self):
+        """Private method to store particles in a cell list, used to identify which particles interact significantly. 
+        Cell_list is updated differently dependent on the optimization algorithm.
+        """
+        self.cell_list = defaultdict(list)
+
+        for i, cell in enumerate(self._compute_cell_indices()):
+            key = tuple(cell)
+            self.cell_list[key].append(i)
+            
+    def _net_forces_cell_list(self):
+        """Private method: optimized force calculation algorithm; called cell list algorithm.
+        Only forces between particles of adjacent cells are calculated, with the efficiency scaling with the system size - the algorithm is only used for systems of more than 2 cells per dimension.
+        Implements periodic boundary condition, but not minimum image convention. 
+        Uses matrix calculation instead of nested for-loops. 
+        Returns final array to enable storage of multiple force arrays in one simulation step.
+        """
+        forces = np.zeros_like(self.positions)
+        self._build_cell_list()
+
+        for cell, particles in self.cell_list.items():
+            particles = np.array(particles)
+
+            adjacent_cells = [
+                (dx, dy, dz)
+                for dx in [-1, 0, 1]
+                for dy in [-1, 0, 1]
+                for dz in [-1, 0, 1]
+            ]
+            
+            for shift in adjacent_cells:
+                neighbor_cell = neighbor_cell = tuple(
+                    (np.array(cell) + shift) % int(self.boxsize / self.rcutoff)
+                ) # Implements periodic boundary conditions
+
+                if neighbor_cell not in self.cell_list:
+                    continue
+
+                neighbors = np.array(self.cell_list[neighbor_cell])
+                pos_i = self.positions[particles]     # shape (Ni, 3)
+                pos_j = self.positions[neighbors]     # shape (Nj, 3)
+
+                diff = pos_j[np.newaxis, :, :] - pos_i[:, np.newaxis, :]
+                diff = (diff + 0.5*self.boxsize) % self.boxsize - 0.5*self.boxsize
+
+                # Masking
+                dist2 = np.sum(diff**2, axis=-1)
+                mask = (dist2 < self.rcutoff**2) & (dist2 > 0)
+                valid_diff = diff[mask]
+                valid_dist = np.sqrt(dist2[mask])
+
+                F_mag = -interaction_force(valid_dist)
+                F_vec = (F_mag[:, np.newaxis] * valid_diff)
+
+                # Scattering back to keep particle identity
+                idx_i, idx_j = np.where(mask)
+                np.add.at(forces, particles[idx_i], F_vec)
+                np.add.at(forces, neighbors[idx_j], -F_vec)
+
+        return forces
+    
     def _update_positions(self, alg: str="verlet"):
         """Private method: use Verlet's algorithm to update positions, with box constraints applied. Part of general step in the simulation.
         """
@@ -235,20 +329,24 @@ class Simulation:
         return 0.5 * np.sum(lennard_jones_potential(dist))
 
     def _step(self, alg: str="verlet"):
-        """Private method: Advance the system by one step with Verlet's Algorithm
+        """Private method: Advance the system by one step with Verlet's Algorithm. Force calculation depends on box size and if optimization is turned on.
         """
         if alg == "verlet":
             self._update_positions(alg="verlet")            # with self.forces from initialization or previous step
-            new_forces = self._net_forces()
+            if self.optimized and int(self.boxsize / self.rcutoff) > 2: # cell list algorithm only makes sense if we have at least 3 cells per dimension
+                new_forces = self._net_forces_cell_list()   # optimized force calculation
+            else:
+                new_forces = self._net_forces()
             self._update_velocities(new_forces, alg= "verlet") # uses both F(t) and F(t+h)
             self.forces = new_forces            # roll forward
         
         if alg == "euler":
             self._update_positions(alg="euler")
             self._update_velocities(None, alg="euler")
-            self.forces = self._net_forces()
-        
-        self.timestep += 1
+            if self.optimized and int(self.boxsize / self.rcutoff) > 2: # cell list algorithm only makes sense if we have at least 3 cells per dimension
+                new_forces = self._net_forces_cell_list()   # optimized force calculation
+            else:
+                new_forces = self._net_forces()
     
     def _run(self, steps: int=1000):
         """Private method for running the simulation without storing history and without status checks, 
@@ -391,18 +489,23 @@ class Simulation:
         
         self.scat._offsets3d = (self.positions[:,0], self.positions[:,1], self.positions[:,2]) # type: ignore
         
-        start = max(0, self.timestep - self.steps_window)
+        start = max(0, len(self.e_kin_hist) - self.steps_window)
         
         self.plot_kin.set_xdata(np.arange(len(self.e_kin_hist)))
         self.plot_kin.set_ydata(np.array(self.e_kin_hist) / self.num_particles)
         self.plot_pot.set_xdata(np.arange(len(self.e_pot_hist)))
         self.plot_pot.set_ydata(np.array(self.e_pot_hist) / self.num_particles)
+        self.plot_tot.set_xdata(np.arange(len(self.e_kin_hist)))
+        self.plot_tot.set_ydata((np.array(self.e_kin_hist) + np.array(self.e_pot_hist)) / self.num_particles)
+
         
         self.ax2.set_xlim(start, start + self.steps_window)
                            
         return self.scat, self.plot_kin, self.plot_pot
     
     def run_live(self, steps: int=1000):
+        """Runs the simulation continouusly. Plots the energy evolution per particle in real-time.
+        """
         plt.close('all') # prevent glitch by persisted matplotlib objects
         if self._status == "initialized":
             raise RuntimeError("System has not been equilibrated. Call equilibrate() first.")
@@ -428,6 +531,7 @@ class Simulation:
         self.ax2 = fig.add_subplot(2, 1, 2)
         (self.plot_kin,) = self.ax2.plot([], [], label=r"E$_{kin}$")
         (self.plot_pot,) = self.ax2.plot([], [], label=r"E$_{pot}$")
+        (self.plot_tot,) = self.ax2.plot([], [], label=r"E$_{total}$")
         
         # for i in range(self.timestep): # Probably not necessary, but in case run_live is called after some steps have already been taken
         #     self.e_kin_hist.append(self._kinetic_energy())
@@ -436,7 +540,7 @@ class Simulation:
         # rolling window size
         mid = ((self._potential_energy() + self._kinetic_energy()) / 2) / self.num_particles
         amp = (self._kinetic_energy() / self.num_particles) - mid
-        self.ax2.set_xlim(left=(max(0, self.timestep - steps)), right=self.timestep)
+        self.ax2.set_xlim(left=(max(0, len(self.e_kin_hist) - steps)), right=max(steps, len(self.e_kin_hist)))
         self.ax2.set_ylim(bottom=(mid - 1.4*amp), top=(mid + 1.4*amp))
         self.ax2.legend(loc=7)
         
