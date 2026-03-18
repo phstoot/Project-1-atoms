@@ -344,9 +344,9 @@ class Simulation:
             self._update_positions(alg="euler")
             self._update_velocities(None, alg="euler")
             if self.optimized and int(self.boxsize / self.rcutoff) > 2: # cell list algorithm only makes sense if we have at least 3 cells per dimension
-                new_forces = self._net_forces_cell_list()   # optimized force calculation
+                self.forces = self._net_forces_cell_list()   # optimized force calculation
             else:
-                new_forces = self._net_forces()
+                self.forces = self._net_forces()
     
     def _run(self, steps: int=1000):
         """Private method for running the simulation without storing history and without status checks, 
@@ -559,13 +559,17 @@ class Simulation:
     def run_ensemble(self, n_resets: int = 20, steps: int = 2000, sample_interval: int = 200, n_bins: int = 400, verbose:bool = True):
         """Summary
         ----------
-        Run an ensemble of simulations in series to sample pairwise distances (n(r)) and pressure at 
-        many configurations for many different initial conditions. The method runs
-        'n_resets' independent simulations of 'steps' steps, sampling every 'sample_interval' steps. 
-        The sampled arrays are then averaged to use for the normalized pair correlation function.
+        Run an ensemble of simulations in series to sample pairwise distances (n(r)) and virial term at 
+        many configurations for many different initial conditions. Since this method is focused on sampling, no history
+        of positions, velocities or energies is stored. The method runs 'n_resets' independent simulations of 'steps' steps, 
+        sampling n(r) and the virial every 'sample_interval' steps, and the virial term is kept independent for each 
+        independent simulation for error estimation.
 
         Due to minimal image convention, only the range r=[0, boxsize/2] is considered, so
         delta r = boxsize / (2*n_bins).
+
+        After running this method, the attributes n_r and virials are created, which can be 
+        accessed for further manual manipulation.
 
         Parameters
         ----------
@@ -585,21 +589,23 @@ class Simulation:
             warnings.warn('Earlier runs will be overwritten.')
 
         n_r_accumulator = np.zeros(n_bins)
-        virial_accumulator = 0
+        
+        self.virials = []
         delta_r = self.boxsize / (2*n_bins)
         self.bins = np.arange(0, self.boxsize/2 + delta_r, delta_r)
 
         for _ in tqdm(range(n_resets)):
             self.reset(verbose=verbose)
             self.equilibrate(verbose=verbose)
+            virial_accumulator = 0
             for i in range(steps//sample_interval):
                 self._run(steps=sample_interval)
                 n_r_accumulator += self._sample_n_r()
                 virial_accumulator += self._sample_virial()
+            self.virials.append(virial_accumulator/(steps//sample_interval))
 
         n_samples = n_resets * (steps//sample_interval)
         self.n_r = n_r_accumulator / n_samples
-        self.virial = virial_accumulator / n_samples
         self._status = 'completed'
         self._ensemble_stat = True
 
@@ -623,8 +629,8 @@ class Simulation:
 
         Returns
         -------
-        virial
-            float
+        virial: float
+            The virial term as in Verlet (1967)
         """
         diff, dist = self._pairwise_distances()
         dUdr_term = -interaction_force(dist) * dist**2
@@ -662,13 +668,13 @@ class Simulation:
 
     def measure_pressure(self):
         """Return the pressure based on the formula derived from the virial theorem by
-        Verlet (1961). Uses the averaged virial term sampled in an ensemble of simulations.
+        Verlet (1961). Uses virial term sampled in an ensemble of simulations.
         Can only be called after run_ensemble().
 
         Returns
         -------
-        pressure   
-            float
+        pressure: array  
+            pressure values for each independent simulation from run_ensemble()
             
 
         Raises
@@ -679,7 +685,7 @@ class Simulation:
         if not self._ensemble_stat:
             raise RuntimeError("To measure the pair correlation function, first run_ensemble must be run.")
 
-        pressure = self.temp * self.density - (self.density/ (6*self.num_particles)) * self.virial
+        pressure = self.temp * self.density - (self.density/ (6*self.num_particles)) * np.array(self.virials)
         return pressure
 
     # def quickshow(self):
