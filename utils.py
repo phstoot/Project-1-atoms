@@ -12,6 +12,19 @@ from numba import njit
 # mass = 6.6 * 10 ** (-26)  # Mass
 
 
+def section(title: str):
+    """print to console in nice format"""
+    width = 60
+    print("\n" + "=" * width)
+    print(f"{title.upper():^{width}}")
+    print("=" * width + "\n")
+
+
+def spacer(n: int = 2):
+    """print to console in nice format"""
+    print("\n" * n, end="")
+
+
 @njit
 def interaction_force(r):
     """

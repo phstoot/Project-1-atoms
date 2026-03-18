@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from random import randint
 import matplotlib.animation as animation
-from functions import (
+from utils import (
     lennard_jones_potential,
     min_vector,
     interaction_force,

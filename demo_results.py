@@ -16,8 +16,7 @@ from simulation import Simulation
 import matplotlib.pyplot as plt
 from time import sleep
 import numpy as np
-from tqdm import tqdm
-from functions import lennard_jones_potential, interaction_force, min_vector
+from utils import spacer, section
 import matplotlib as mpl
 from cycler import cycler
 
@@ -57,20 +56,6 @@ def collision_demo(alg):
     plt.savefig(f"energies_{alg}.pdf")
     plt.show()
     spacer()
-
-
-def section(title: str):
-    """print to console in nice format"""
-    width = 60
-    print("\n" + "=" * width)
-    print(f"{title.upper():^{width}}")
-    print("=" * width + "\n")
-
-
-def spacer(n: int = 2):
-    """print to console in nice format"""
-    print("\n" * n, end="")
-
 
 if __name__ == "__main__":
     section("overview")

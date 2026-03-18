@@ -23,7 +23,7 @@ from tqdm import tqdm
 from collections import defaultdict
 from numba import njit
 import matplotlib.animation as animation
-from functions import interaction_force, lennard_jones_potential, compute_forces_numba
+from utils import interaction_force, lennard_jones_potential, compute_forces_numba
 
 
 class PositiveInteger:
@@ -602,7 +602,7 @@ class Simulation:
 
     def _update_animation(
         self, frame, alg: str = "verlet", store: bool = True
-    ):  # I think "store" needs to be turned on always - for the animation?
+    ): 
         """This private method is essentially a copy of the run method with storing history,
         with some additional code for the live animation.
         """
@@ -681,7 +681,7 @@ class Simulation:
             right=max(steps, len(self.e_kin_hist)),
         )
         self.ax2.set_ylim(bottom=(mid - 1.4 * amp), top=(mid + 1.4 * amp))
-        self.ax2.set_xlabel(r"\textit{t} (steps)")
+        self.ax2.set_xlabel(r"$t$ (steps)")
         self.ax2.set_ylabel(r"Energy per particle")
         self.ax2.legend(loc=7)
 
