@@ -1,3 +1,20 @@
+"""
+Molecular dynamics simulation of Lennard-Jones particles.
+
+Classes:
+    Simulation: NVE molecular dynamics simulation of argon atoms
+                interacting via the Lennard-Jones potential.
+
+Dependencies:
+    numpy, matplotlib, tqdm, warnings, numba
+
+Basic usage:
+    from simulation import Simulation
+    sim = Simulation(density=0.8, temp=1.0)
+    sim.equilibrate()
+    sim.run()
+"""
+
 import math
 import warnings
 import numpy as np
@@ -402,7 +419,6 @@ class Simulation:
             if self.numba and np.floor(self.boxsize / self.rcutoff) > 2: # same for numba-optimized cell list algorithm
                 self.forces = self._net_forces_cell_list_numba()
             else:
-                self.forces = self._net_forces()
                 self.forces = self._net_forces()
     
     def _run(self, steps: int=1000):

@@ -1,9 +1,20 @@
+"""
+Script to reproduce all displayed results in the final report.
+
+Usage:
+    python results_demo.py
+
+Output:
+    - energy plots for two-particle collisions with euler and verlet algorithm
+    - pair correlation function plots (gas, liquid, solid)
+    - pressures.txt with pressure values and error estimates
+"""
+
 from simulation import Simulation
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 from functions import lennard_jones_potential, interaction_force, min_vector
-
 import matplotlib as mpl
 from cycler import cycler
 
@@ -57,19 +68,22 @@ if __name__ == '__main__':
               'ytick.major.size':    10, 
               'ytick.minor.size':    3, })
 
-    
-
     collision_demo('euler')
     collision_demo('verlet')
 
-
     gas = Simulation(density=0.3, temp=3) 
-    liquid = Simulation(density=0.8, temp=1, num_particles=256)
-    solid = Simulation(density=1.2, temp=0.5, num_particles=256)
+    # liquid = Simulation(density=0.8, temp=1, num_particles=256)
+    # solid = Simulation(density=1.2, temp=0.5, num_particles=256)
+    liquid = Simulation(density=0.8, temp=1)
+    solid = Simulation(density=1.2, temp=0.5)
     print('Three simulation instances were initialized corresponding to Argon gas, liquid and solid.')
-    gas.run_ensemble(n_resets=50, steps=1000, sample_interval=50, verbose=False)
-    liquid.run_ensemble(n_resets=40, steps=1000, sample_interval=100, verbose=False)
-    solid.run_ensemble(n_resets=15, steps=2000, sample_interval=200, verbose=False)
+    # gas.run_ensemble(n_resets=50, steps=1000, sample_interval=50, verbose=False)
+    # liquid.run_ensemble(n_resets=40, steps=1000, sample_interval=100, verbose=False)
+    # solid.run_ensemble(n_resets=15, steps=2000, sample_interval=200, verbose=False)
+
+    gas.run_ensemble(n_resets=30, steps=1000, sample_interval=10, verbose=False)
+    liquid.run_ensemble(n_resets=30, steps=1000, sample_interval=10, verbose=False)
+    solid.run_ensemble(n_resets=30, steps=1000, sample_interval=10, verbose=False)
 
     gas_r, gas_pcf = gas.measure_pair_corr_function()
     gas_pressure = gas.measure_pressure()
