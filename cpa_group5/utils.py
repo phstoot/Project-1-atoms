@@ -117,6 +117,7 @@ def compute_forces_numba(
 ):
     """
     Computes forces on each particle using the linked-cell algorithm, optimized with numba. Needs to be conducted outside of the Simulation class.
+    Since numba works fastest on loops, nested-loops instead of matrix multiplications are applied. 
 
 
     Parameters
@@ -160,6 +161,9 @@ def compute_forces_numba(
                             neighbor_id = nx + num_cells_per_dim * (
                                 ny + num_cells_per_dim * nz
                             )
+                            
+                            if neighbor_id < cell_id: ## Avoid double counting of cells
+                                continue
 
                             for a in range(cell_counts[cell_id]):
                                 i = cell_particles[cell_id, a]
@@ -169,12 +173,12 @@ def compute_forces_numba(
                                 for b in range(cell_counts[neighbor_id]):
                                     j = cell_particles[neighbor_id, b]
 
-                                    if j <= i:
-                                        continue
+                                    if neighbor_id == cell_id:
+                                        if j <= i:
+                                            continue
 
                                     rij = positions[j] - positions[i]
-
-                                    # minimal image
+                                    
                                     for k in range(3):
                                         if rij[k] > 0.5 * boxsize:
                                             rij[k] -= boxsize
