@@ -687,7 +687,7 @@ class Simulation:
         sampling n(r) and the virial every 'sample_interval' steps, and the virial term is kept independent for each
         independent simulation for error estimation.
 
-        Due to minimal image convention, only the range r=[0, boxsize/2] is considered, so
+        Due to periodic boundary conditions, only the range r=[0, boxsize/2] is considered, so
         delta r = boxsize / (2*n_bins).
 
         After running this method, the attributes n_r and virials are created, which can be
@@ -714,7 +714,7 @@ class Simulation:
 
         self.virials = []
         delta_r = self.boxsize / (2 * n_bins)
-        self.bins = np.arange(0, self.boxsize / 2 + delta_r, delta_r)
+        self.bins = np.linspace(0, self.boxsize/2, n_bins + 1)
 
         for _ in tqdm(range(n_resets)):
             self.reset(verbose=verbose)
