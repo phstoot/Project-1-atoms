@@ -21,6 +21,48 @@ from cpa_group5.utils import spacer, section
 import matplotlib as mpl
 from cycler import cycler
 import copy
+import time
+import multiprocessing as mp
+from functools import partial
+
+
+def _timeout_wrapper(func, queue):
+    """
+    Wrapper function to measure runtime of a function with a timeout.
+    
+    Parameters
+    ----------
+    func : function
+        The function to be executed and timed.
+    queue : multiprocessing.Queue
+        A multiprocessing queue to store the result of the timing.
+    """
+    start = time.time()
+    func()
+    queue.put(time.time() - start)
+
+def run_with_timeout(func, timeout=300):
+    """
+    Runs a function with a timeout. Return NaN if the function does not complete within the timeout.
+    
+    Parameters
+    ----------
+    func : function
+        The function to be executed and timed.
+    timeout : int, optional
+        The maximum time to wait for the function to complete, by default 300 seconds.
+    """
+    queue = mp.Queue()
+    p = mp.Process(target=_timeout_wrapper, args=(func, queue))
+    p.start()
+    p.join(timeout)
+
+    if p.is_alive():
+        p.terminate()
+        p.join()
+        return np.nan
+
+    return queue.get()
 
 
 def collision_demo(alg):
@@ -226,7 +268,7 @@ if __name__ == "__main__":
             f"solid      {solid.density:<10.3f} {solid.temp:<15.3f} {solid_pressure_mean:<15.4f} {solid_pressure_error:<15.4f}\n"
         )
     
-    section("optimization tests")
+    section("optimization test 1")
     num_particles = 864
     default_sim = Simulation(num_particles=num_particles, optimized=True, numba=True)
     print(
@@ -248,7 +290,7 @@ if __name__ == "__main__":
     print("Advancing over normal algorithm")
     normal_sim.run(steps=500)
     print("Advancing over linked_cell algorithm")
-    linked_cell_sim.run(steps=500, )
+    linked_cell_sim.run(steps=500)
     print("Advancing over linked_cell + numba algorithm")
     linked_cell_numba_sim.run(steps=500)
 
@@ -269,12 +311,85 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize=(6, 3))
 
-    plt.plot(deviation_linked_cell, label=r"$\Delta F_{lc}$")
-    plt.plot(deviation_linked_cell_numba, label=r"$\Delta F_{lcn}$")
+    plt.plot(deviation_linked_cell, label="Linked-Cell")
+    plt.plot(deviation_linked_cell_numba, label="Linked-Cell + Numba")
     plt.xlim(0, 500)
     plt.xlabel(r"$t$ (steps)")
-    plt.ylabel(r"$\Delta F$")
+    plt.ylabel(r"$\sigma_F$")
     plt.tight_layout()
     plt.legend()
     plt.savefig('force_deviations.pdf')
     plt.show()    
+    
+    section("optimization test 2")
+    
+    print(
+        f"A simulation with different number of particles in a fluid state is initialized, such that the performance of the optimization algorithms can be tested."
+    )
+
+    FCC_number = [(4*n**3) for n in range(3, 10)]
+    normal_runtimes = []
+    linked_cell_runtimes = []
+    linked_cell_numba_runtimes = []
+
+    for num_particles in FCC_number:
+        print(f"Testing with {num_particles} particles.")
+        
+        default_sim = Simulation(
+            num_particles=num_particles,
+            density=1.2,
+            temp=0.5,
+            optimized=True,
+            numba=True
+        )
+
+        default_sim.equilibrate()
+
+        normal_sim = copy.deepcopy(default_sim)
+        normal_sim.optimized = False
+
+        linked_cell_sim = copy.deepcopy(default_sim)
+        linked_cell_sim.numba = False
+
+        linked_cell_numba_sim = copy.deepcopy(default_sim)
+
+        print("Normal algorithm")
+        normal_runtime = run_with_timeout(partial(normal_sim.run, steps=100))
+        normal_runtimes.append(normal_runtime)
+        print("Runtime:", normal_runtime)
+
+        if normal_sim.boxsize / normal_sim.rcutoff > 3:  # only run linked-cell algorithms if we have at least 3 cells per dimension
+            print("Linked-cell (NumPy)")
+            linked_cell_runtime = run_with_timeout(partial(linked_cell_sim.run, steps=100))
+            linked_cell_runtimes.append(linked_cell_runtime)
+            print("Runtime:", linked_cell_runtime)
+
+            print("Linked-cell (Numba)")
+            linked_cell_numba_runtime = run_with_timeout(partial(linked_cell_numba_sim.run, steps=100))
+            linked_cell_numba_runtimes.append(linked_cell_numba_runtime)
+            print("Runtime:", linked_cell_numba_runtime)
+        else:
+            linked_cell_runtime = np.nan
+            linked_cell_numba_runtime = np.nan
+            print("Linked-cell (NumPy)")
+            print("Runtime:", linked_cell_runtime)
+            print("Linked-cell (Numba)")
+            print("Runtime:", linked_cell_numba_runtime)
+
+            linked_cell_runtimes.append(np.nan)
+            linked_cell_numba_runtimes.append(np.nan)
+        
+        
+        spacer()
+
+
+
+    print(
+        f"{'num_particles':<10} {r'Runtime Normal':<20} {r'Runtime LC':<20} {r'Runtime LC+Numba':<20} \n"
+    )
+    print("-" * 65 + "\n")
+    for step, num_particles in enumerate(FCC_number):
+        print(
+            f"{num_particles:<10} {normal_runtimes[step]:<20.4f} {linked_cell_runtimes[step]:<20.4f} {linked_cell_numba_runtimes[step]:<20.4f} \n"
+        )
+    print("Done.")

@@ -84,29 +84,29 @@ class Simulation:
         timestep_h: float = 0.001,
         units: str = "natural",
         optimized: bool = False,
-        rcutoff: float = 2.43,
+        rcutoff: float = 2.7,
         numba=False,
     ):
-        """_summary_
+        """Initializes the simulation with given parameters.
 
         Parameters
         ----------
         density : float
-            _description_
+            density of the system in natural units, by default 0.8
         num_particles : int, optional
-            _description_, by default 108
+            number of particles in the system, by default 108
         dim : int, optional
-            _description_, by default 2
+            dimensionality of the system, by default 3
         timestep_h : float, optional
-            _description_, by default 0.001
+            size of the time step, by default 0.001
         units : str, optional
-            _description_, by default 'natural'
+            defines if units are natural or SI, by default 'natural' 
         optimized : bool, optional
-            _description_, by default False
+            whether to use optimized force calculation, by default False
         numbaoptimized : bool, optional
-            _description_, by default False
-        cutoff: float, optional
-        _description_, by default 2.43
+            whether to use Numba-optimized force calculation, by default False
+        rcutoff: float, optional
+            cutoff radius for the Lennard-Jones potential, by default 2.7
         """
         self.density = density
         self.temp = temp
