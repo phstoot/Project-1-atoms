@@ -10,6 +10,7 @@ Output:
     - demonstration of a single simulation with FCC grid and randomly drawn velocities
     - pair correlation function plots (gas, liquid, solid)
     - pressures.txt with pressure values and error estimates
+    - deviation of forces for linked cell and linked cell + numba optimization algorithms compared to normal algorithm
 """
 
 from cpa_group5.simulation import Simulation
@@ -19,6 +20,7 @@ import numpy as np
 from cpa_group5.utils import spacer, section
 import matplotlib as mpl
 from cycler import cycler
+import copy
 
 
 def collision_demo(alg):
@@ -223,3 +225,55 @@ if __name__ == "__main__":
         f.write(
             f"solid      {solid.density:<10.3f} {solid.temp:<15.3f} {solid_pressure_mean:<15.4f} {solid_pressure_error:<15.4f}\n"
         )
+    
+    section("optimization tests")
+    default_sim = Simulation(num_particles=500, optimized=True, numba=True)
+    print(
+        "An simulation with 500 particles in a fluid state is initialized, such that the optimization algorithms can be tested for their effect on the data."
+    )
+    print(default_sim)
+    print(
+        "The system will be equilibrated, then copied for each type of algorithm."
+    )
+    spacer()
+
+    default_sim.equilibrate()
+    normal_sim = copy.deepcopy(default_sim)
+    normal_sim.optimized = False
+    linked_cell_sim = copy.deepcopy(default_sim)
+    linked_cell_sim.numba = False
+    linked_cell_numba_sim = copy.deepcopy(default_sim)
+
+    print("Advancing over normal algorithm")
+    normal_sim.run(steps=500)
+    print("Advancing over linked_cell algorithm")
+    linked_cell_sim.run(steps=500, )
+    print("Advancing over linked_cell + numba algorithm")
+    linked_cell_numba_sim.run(steps=500)
+
+    deviation_linked_cell = [
+        np.mean(np.linalg.norm(f_norm - f_lc, axis=1) / np.linalg.norm(f_norm, axis=1))
+        for f_norm, f_lc in zip(
+            normal_sim.forces_hist,
+            linked_cell_sim.forces_hist
+        )
+    ]
+    deviation_linked_cell_numba = [
+        np.mean(np.linalg.norm(f_norm - f_nb, axis=1) / np.linalg.norm(f_norm, axis=1))
+        for f_norm, f_nb in zip(
+            normal_sim.forces_hist,
+            linked_cell_numba_sim.forces_hist
+        )
+    ]
+
+    fig = plt.figure(figsize=(6, 3))
+
+    plt.plot(deviation_linked_cell, label=r"$\Delta F_{lc}$")
+    plt.plot(deviation_linked_cell_numba, label=r"$\Delta F_{lcn}$")
+    plt.xlim(0, 500)
+    plt.xlabel(r"$t$ (steps)")
+    plt.ylabel(r"$\Delta F$")
+    plt.tight_layout()
+    plt.legend()
+    plt.savefig('force_deviations.pdf')
+    plt.show()    
