@@ -227,9 +227,10 @@ if __name__ == "__main__":
         )
     
     section("optimization tests")
-    default_sim = Simulation(num_particles=500, optimized=True, numba=True)
+    num_particles = 864
+    default_sim = Simulation(num_particles=num_particles, optimized=True, numba=True)
     print(
-        "An simulation with 500 particles in a fluid state is initialized, such that the optimization algorithms can be tested for their effect on the data."
+        f"A simulation with {num_particles} particles in a fluid state is initialized, such that the optimization algorithms can be tested for their effect on the data."
     )
     print(default_sim)
     print(

@@ -315,9 +315,9 @@ class Simulation:
 
         num_cells = self.num_cells_per_dim**3
 
-        max_particles = 200  # safe upper bound per cell
+        safe_upper_bound_per_cell = 200 
 
-        self.cell_particles = -np.ones((num_cells, max_particles), dtype=np.int32)
+        self.cell_particles = -np.ones((num_cells, safe_upper_bound_per_cell), dtype=np.int32)
         self.cell_counts = np.zeros(num_cells, dtype=np.int32)
 
         cell_indices = np.floor(self.positions / self.rcutoff).astype(np.int32)
